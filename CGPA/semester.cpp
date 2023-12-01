@@ -1,3 +1,5 @@
+#include <iostream>
+#include <fstream>
 #include <vector>
 #include <string>
 #include <algorithm>
@@ -5,8 +7,10 @@
 
 #include "semester.h"
 
-Semester::Semester(int semNumber) {
-  this->semNumber = semNumber;
+int getSemNumber(std::string& fileUrl);
+
+Semester::Semester() {
+  this->semNumber = 0;
   this->semCredits = 0;
   this->semCourses = {};
 }
@@ -32,37 +36,27 @@ void Semester::addCourse(const Course& course) {
   semCredits += course.getCredits();
 }
 
-void Semester::inputCourses() {
-  int n_courses;
+void Semester::inputCourses(std::string& fileUrl) {
+  auto semNumber = ::getSemNumber(fileUrl);
 
-  std::cout << "Enter the number of courses: ";
-  std::cin >> n_courses;
+  std::ifstream semDetails(fileUrl);
+  std::string courseDetails;
 
-  std::cout << "\nEnter the course details:\n";
-  for (int i = 0; i < n_courses; i++) {
-    std::string courseCode;
-    int credits;
-    double grade = -1;
+  if (semDetails.is_open()) {
+    while (std::getline(semDetails, courseDetails)) {
+      /* std::cout << courseDetails << "\n"; */
+      std::string courseCode = courseDetails.substr(0, courseDetails.find(','));
 
-    std::cout << "Course " << i+1 << ":\n";
-    std::cout << "Course Code: ";
-    std::cin >> courseCode;
-
-    std::cout << "Credits: ";
-    std::cin >> credits;
-
-    while (grade < 0 || grade > 10) {
-      std::cout << "Grade: ";
-      std::cin >> grade;
-
+      std::string otherDetails = courseDetails.substr(courseDetails.find(',')+1);
+      int credits = stoi(otherDetails.substr(0, otherDetails.find(',')));
+      
+      double grade = std::stod(otherDetails.substr(otherDetails.find(',')+1));
       if (grade < 0 || grade > 10) {
-        std::cout << "Grade must be between 0 and 10! Try again...\n\n";
-        continue;
+        std::cout << "The input grades in " << semNumber << " are not between 0 and 10! Aborting...\n";
+        exit(0);
       }
-      std::cout << "\n";
+      addCourse(Course(courseCode, credits, grade));
     }
-
-    addCourse(Course(courseCode, credits, grade));
   }
 }
 
@@ -87,4 +81,20 @@ std::ostream& operator<<(std::ostream& os, const Semester& semester) {
   }
   os << "SGPA: " << semester.getSGPA() << "\n";
   return os;
+}
+
+int getSemNumber(std::string& fileUrl) {
+  auto indexOfSlash = fileUrl.find_last_of('/');
+  if (indexOfSlash == std::string::npos)
+    indexOfSlash = 0;
+  else 
+    indexOfSlash += 1;
+
+  auto fileNameAndExtension = fileUrl.substr(indexOfSlash);
+  auto indexOfDot = fileNameAndExtension.find('.');
+  if (indexOfDot == std::string::npos)
+    indexOfDot = fileNameAndExtension.size();
+
+  auto fileName = stoi(fileNameAndExtension.substr(0, indexOfDot));
+  return fileName;
 }

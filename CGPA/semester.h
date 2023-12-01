@@ -2,6 +2,7 @@
 #define __SEMESTER_H_INCLUDED__
 
 #include <vector>
+#include <string>
 #include "course.h"
 
 class Semester {
@@ -13,7 +14,7 @@ private:
   double SGPA;
 
 public:
-  Semester(int semNumber);
+  Semester();
 
   int getSemNumber() const;
   int getSemCredits() const;
@@ -23,7 +24,7 @@ public:
   double getSGPA() const;
 
   void addCourse(const Course& course);
-  void inputCourses();
+  void inputCourses(std::string& fileUrl);
 
   friend std::ostream& operator<<(std::ostream& os, const Semester& semester);
 };

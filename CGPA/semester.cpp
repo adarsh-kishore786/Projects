@@ -44,7 +44,6 @@ void Semester::inputCourses(std::string& fileUrl) {
 
   if (semDetails.is_open()) {
     while (std::getline(semDetails, courseDetails)) {
-      /* std::cout << courseDetails << "\n"; */
       std::string courseCode = courseDetails.substr(0, courseDetails.find(','));
 
       std::string otherDetails = courseDetails.substr(courseDetails.find(',')+1);
@@ -75,11 +74,13 @@ std::ostream& operator<<(std::ostream& os, const Semester& semester) {
   std::string credits = "Total Credits: " + std::to_string(semester.getSemCredits()) + "\n";
   std::string courses = "Total Courses: " + std::to_string(semester.getNumCourses()) + "\n\n";
 
+  os << "----------------------------\n";
   os << title << credits << courses;
   for (auto& course : semester.getSemCourses()) {
     os << course << "\n";
   }
   os << "SGPA: " << semester.getSGPA() << "\n";
+  os << "----------------------------\n";
   return os;
 }
 
@@ -95,6 +96,6 @@ int getSemNumber(std::string& fileUrl) {
   if (indexOfDot == std::string::npos)
     indexOfDot = fileNameAndExtension.size();
 
-  auto fileName = stoi(fileNameAndExtension.substr(0, indexOfDot));
-  return fileName;
+  auto fileName = fileNameAndExtension.substr(0, indexOfDot);
+  return stoi(fileName);
 }

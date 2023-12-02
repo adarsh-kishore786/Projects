@@ -1,14 +1,12 @@
 #include <iostream>
 #include <string>
 
-#include "course.h"
-#include "semester.h"
+#include "college.h"
 
 int main() {
-  auto semester = Semester();
-  std::string baseUrl = "grades/5.txt";
+  std::string collegeName = "NITK";
+  auto college = College(collegeName);
+  std::cout << college;
 
-  semester.inputCourses(baseUrl);
-  std::cout << semester;
   return 0;
 }

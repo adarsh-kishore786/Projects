@@ -37,7 +37,7 @@ void Semester::addCourse(const Course& course) {
 }
 
 void Semester::inputCourses(std::string& fileUrl) {
-  auto semNumber = ::getSemNumber(fileUrl);
+  semNumber = ::getSemNumber(fileUrl);
 
   std::ifstream semDetails(fileUrl);
   std::string courseDetails;
@@ -49,7 +49,7 @@ void Semester::inputCourses(std::string& fileUrl) {
 
       std::string otherDetails = courseDetails.substr(courseDetails.find(',')+1);
       int credits = stoi(otherDetails.substr(0, otherDetails.find(',')));
-      
+
       double grade = std::stod(otherDetails.substr(otherDetails.find(',')+1));
       if (grade < 0 || grade > 10) {
         std::cout << "The input grades in " << semNumber << " are not between 0 and 10! Aborting...\n";

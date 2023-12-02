@@ -32,7 +32,7 @@ void College::inputSemesters() {
 }
 
 std::ostream& operator<<(std::ostream& os, const College& college) {
-  os << college.getCollegeName() << "\n\n";
+  os << "College Name: " << college.getCollegeName() << "\n\n";
 
   for (auto& sem : college.getSemesters()) {
     os << sem << "\n";

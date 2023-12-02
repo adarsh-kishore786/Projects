@@ -18,6 +18,8 @@ public:
   std::string getCollegeName() const;
   std::vector<Semester> getSemesters() const;
 
+  double getCGPA(int numSemesters) const;
+
   friend std::ostream& operator<<(std::ostream& os, const College& college);
 };
 

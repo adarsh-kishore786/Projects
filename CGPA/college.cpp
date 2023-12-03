@@ -1,6 +1,8 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <filesystem>
+#include <algorithm>
 
 #include "college.h"
 #include "semester.h"
@@ -21,15 +23,15 @@ std::vector<Semester> College::getSemesters() const {
 void College::inputSemesters() {
   std::string inputUrl = "grades/";
 
-  int numSemesters = 0;
-  std::cout << "Enter the number of semesters you have had: ";
-  std::cin >> numSemesters;
-  std::cout << "Assuming the semesters are in `grades/`\n";
+  std::cout << "Assuming the semesters are in `grades/`\n\n";
+  std::vector<std::filesystem::path> files;
+  std::copy(std::filesystem::directory_iterator(inputUrl), std::filesystem::directory_iterator(), std::back_inserter(files));
+  std::sort(files.begin(), files.end());
 
-  for (int i = 1; i <= numSemesters; i++) {
+  for (const auto& entry : files) {
     auto sem = Semester();
-    auto fileUrl = inputUrl + (char)(i+48);
-    sem.inputCourses(fileUrl);
+    std::string filePath = entry;
+    sem.inputCourses(filePath);
 
     semesters.push_back(sem);
   }

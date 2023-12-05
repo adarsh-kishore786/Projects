@@ -15,4 +15,4 @@ WORKDIR Projects/CGPA
 COPY grades/ grades/
 
 # time to test this!
-CMD echo "Hello, World!"
+CMD make

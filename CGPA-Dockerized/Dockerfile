@@ -1,2 +1,5 @@
 FROM alpine:latest
-CMD   echo "Hello, World!"
+RUN apk add git
+RUN apk add make
+RUN apk add g++
+CMD echo "Hello, World!"

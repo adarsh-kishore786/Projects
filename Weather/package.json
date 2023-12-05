@@ -4,7 +4,7 @@
   "description": "An app to know current weather",
   "main": "main.js",
   "scripts": {
-    "start": "nodemon main.js"
+    "start": "nodemon main.mjs"
   },
   "author": "Adarsh Kishore",
   "license": "ISC",

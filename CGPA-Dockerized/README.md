@@ -9,7 +9,7 @@ do the following:
 docker image build -t cgpa .
 docker container run cgpa
 ```
-That's it! Everything is handled by the `Dockerfile`
+That's it! Everything is handled by the `Dockerfile`.
 
 ## Change the data files
 I have included some sample grade files in the repository. You can change those

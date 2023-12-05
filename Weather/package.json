@@ -4,7 +4,7 @@
   "description": "An app to know current weather",
   "main": "main.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "nodemon main.js"
   },
   "author": "Adarsh Kishore",
   "license": "ISC",

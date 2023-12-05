@@ -5,7 +5,8 @@ RUN apk add g++
 
 RUN git clone https://github.com/adarsh-kishore786/Projects.git 
 RUN cd Projects/CGPA
-
 WORKDIR Projects/CGPA
+
+COPY grades/ grades/
 
 CMD echo "Hello, World!"

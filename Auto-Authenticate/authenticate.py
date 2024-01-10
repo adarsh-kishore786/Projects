@@ -27,7 +27,6 @@ data = {
     'mode': os.getenv('mode'),
     'username': os.getenv('username'),
     'password': os.getenv('password'),
-    'a': os.getenv('a'),
     'producttype': os.getenv('producttype'),
 }
 

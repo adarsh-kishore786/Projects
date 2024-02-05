@@ -1,3 +1,33 @@
+async function groupTabs(tabIds) {
+  const group = await chrome.tabs.group({ tabIds });
+  await chrome.tabGroups.update(group, { title: "Docs", collapsed: true, color: "cyan" });
+}
+
+async function groupUngroupTabs(tabs) {
+  const tabIds = tabs.map(({ id }) => id);
+  if (!tabIds.length) {
+    return;
+  }
+
+  const groupIds = tabs.map(({ groupId }) => groupId);
+  if (groupIds.length === 1 && groupIds[0] === -1) {
+    await groupTabs(tabIds);
+    return;
+  }
+
+  for (let i = 0; i < groupIds.length-1; i++) {
+    console.log(groupIds[i]);
+    console.log(groupIds[i+1]);
+    if (groupIds[i] === -1 || groupIds[i] !== groupIds[i+1]) {
+      await groupTabs(tabsIds);
+      return;
+    } 
+  }
+
+  console.log(tabs);
+  await chrome.tabs.ungroup(tabIds);
+  console.log(tabs);
+}
 const tabs = await chrome.tabs.query({
   url: [
     "https://developer.chrome.com/docs/webstore/*",
@@ -30,25 +60,4 @@ for (const tab of tabs) {
 document.querySelector("ul").append(...elements);
 
 const button = document.querySelector("button");
-button.addEventListener("click", async() => {
-  const tabIds = tabs.map(({ id }) => id);
-  if (tabIds.length) {
-    const groupIds = tabs.map(({ groupId }) => groupId);
-    let flag = 1;
-    for (let i = 0; i < groupIds.length-1; i++) {
-      console.log(groupIds[i]);
-      console.log(groupIds[i+1]);
-      if (groupIds[i] === -1 || groupIds[i] !== groupIds[i+1]) {
-        const group = await chrome.tabs.group({ tabIds });
-        await chrome.tabGroups.update(group, { title: "Docs", collapsed: true, color: "cyan" });
-        flag = 0;
-        break;
-      } 
-    }
-    if (flag === 1) {
-      const ungroup = chrome.tabs.ungroup(tabIds);
-      await chrome.tabGroups.update(ungroup);
-    }
-    console.log(flag);
-  }
-});
+button.addEventListener("click", () => groupUngroupTabs(tabs));

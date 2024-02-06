@@ -3,7 +3,8 @@ async function groupTabs(tabIds) {
   await chrome.tabGroups.update(group, { title: "Docs", collapsed: true, color: "cyan" });
 }
 
-async function groupUngroupTabs(tabs) {
+async function groupUngroupTabs(urls) {
+  const tabs = await getTabs(urls);
   const tabIds = tabs.map(({ id }) => id);
 
   if (!tabIds.length) {
@@ -11,23 +12,20 @@ async function groupUngroupTabs(tabs) {
   }
 
   const groupIds = tabs.map(({ groupId }) => groupId);
-  if (groupIds.length === 1 && groupIds[0] === -1) {
+  if (groupIds.length === 1 && groupIds[0] === chrome.tabGroups.TAB_GROUP_ID_NONE) {
     await groupTabs(tabIds);
     return;
   }
 
   for (let i = 0; i < groupIds.length-1; i++) {
-    console.log(groupIds[i]);
-    console.log(groupIds[i+1]);
-    if (groupIds[i] === -1 || groupIds[i] !== groupIds[i+1]) {
-      await groupTabs(tabsIds);
+    if (groupIds[i] === chrome.tabGroups.TAB_GROUP_ID_NONE || groupIds[i] !== groupIds[i+1]) {
+      await groupTabs(tabIds);
+      console.log(tabs.map(({ groupId }) => groupId));
       return;
     } 
   }
 
-  console.log(tabs);
   await chrome.tabs.ungroup(tabIds);
-  console.log(tabs);
 }
 
 async function getTabs(urls) {
@@ -62,7 +60,7 @@ async function setUpHTML(urls) {
   document.querySelector("ul").append(...elements);
 
   const button = document.querySelector("button");
-  button.addEventListener("click", () => groupUngroupTabs(tabs));
+  button.addEventListener("click", () => groupUngroupTabs(urls));
 }
 
 const urls = [
@@ -70,6 +68,6 @@ const urls = [
   "https://developer.chrome.com/docs/extensions/*",
   // "https://*/*",
   // "http://*/*",
-]
+];
 
 setUpHTML(urls);

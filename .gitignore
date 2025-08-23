@@ -6,3 +6,10 @@
 
 # Unignore all dirs
 !*/
+
+# Ignore debug and target directories
+debug/
+target/
+
+# Ignore lock files
+*.lock

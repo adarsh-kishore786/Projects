@@ -6,8 +6,11 @@ version = 4
 name = "HelpMeUnpack"
 version = "0.1.0"
 dependencies = [
+ "base64",
  "dotenv",
  "reqwest",
+ "serde",
+ "serde_json",
  "tokio",
 ]
 

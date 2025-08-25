@@ -10,3 +10,6 @@
 # Ignore debug and target directories
 debug/
 target/
+
+# Ignore environment files
+.env

@@ -36,12 +36,35 @@ fn unpack(problem_bytes: &str) {
     let problem: Vec<u8> = general_purpose::STANDARD.decode(problem_bytes)
         .expect("There was a problem in decoding the payload");
 
-    let int: i32 = get_int(&problem);
-    println!("{:02x?}", problem);
+    let int: i32 = get_int(&problem[..4].try_into().unwrap());
+    let uint: u32 = get_uint(&problem[4..8].try_into().unwrap());
+    let short: i16 = get_short(&problem[8..10].try_into().unwrap());
+    let float: f32 = get_float(&problem[10..14].try_into().unwrap());
+
+    println!("{int}");
+    println!("{uint}");
+    println!("{short}");
+    println!("{float}");
 }
 
-fn get_int(problem: &Vec<u8>) -> i32 {
-    32
+fn get_int(int_bytes: &[u8; 4]) -> i32 {
+    let int: i32 = i32::from_le_bytes(*int_bytes);
+    return int;
+}
+
+fn get_uint(uint_bytes: &[u8; 4]) -> u32 {
+    let uint: u32 = u32::from_le_bytes(*uint_bytes);
+    return uint;
+}
+
+fn get_short(short_bytes: &[u8; 2]) -> i16 {
+    let short: i16 = i16::from_le_bytes(*short_bytes);
+    return short;
+}
+
+fn get_float(float_bytes: &[u8; 4]) -> f32 {
+    let float: f32 = f32::from_le_bytes(*float_bytes);
+    return float;
 }
 
 fn main() {

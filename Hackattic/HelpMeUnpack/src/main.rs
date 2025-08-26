@@ -32,11 +32,16 @@ async fn get_problem(access_token: &str) -> String {
     return response.text().await.expect("Some error occured while parsing the response!");
 }
 
-fn unpack(problem_bytes: String) {
-    let problem = general_purpose::STANDARD.decode(problem_bytes)
+fn unpack(problem_bytes: &str) {
+    let problem: Vec<u8> = general_purpose::STANDARD.decode(problem_bytes)
         .expect("There was a problem in decoding the payload");
 
-    println!("{:?}", problem);
+    let int: i32 = get_int(&problem);
+    println!("{:02x?}", problem);
+}
+
+fn get_int(problem: &Vec<u8>) -> i32 {
+    32
 }
 
 fn main() {
@@ -49,5 +54,5 @@ fn main() {
     let problem_struct: Problem = from_str(response).expect("The response is not in the format expected!");
     let problem_bytes: String = problem_struct.bytes;
 
-    unpack(problem_bytes);
+    unpack(&problem_bytes);
 }

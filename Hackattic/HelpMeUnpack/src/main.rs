@@ -6,7 +6,7 @@ use serde::{Serialize,Deserialize};
 use serde_json::from_str;
 use base64::{engine::general_purpose, Engine as _ };
 
-const URL: &str = "https://hackattic.com/challenges/help_me_unpack/problem?access_token=";
+const URL: &str = "https://hackattic.com/challenges/help_me_unpack";
 
 #[derive(Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
@@ -26,14 +26,27 @@ struct Result {
 }
 
 async fn get_problem(access_token: &str) -> String {
-    let response = get(format!("{URL}{access_token}"))
+    let response = get(format!("{URL}/problem?access_token={access_token}"))
         .await
         .expect("Some error occured while reading response!");
 
     return response.text().await.expect("Some error occured while parsing the response!");
 }
 
-fn unpack(problem_bytes: &str) {
+async fn post_solution(access_token: &str, solution: &Result) -> String {
+    let client = reqwest::Client::new();
+
+    let response = client
+        .post(format!("{URL}/solution?access_token={access_token}"))
+        .json(solution)
+        .send()
+        .await
+        .expect("Some error occured while sending the solution!");
+
+    return response.text().await.expect("There was an error in reading POST response!");
+}
+
+fn unpack(problem_bytes: &str) -> Result {
     let problem: Vec<u8> = general_purpose::STANDARD.decode(problem_bytes)
         .expect("There was a problem in decoding the payload");
 
@@ -44,7 +57,7 @@ fn unpack(problem_bytes: &str) {
     let double: f64 = get_double(&problem[14..22].try_into().unwrap());
     let double_big_endian: f64 = get_double_big_endian(&problem[22..30].try_into().unwrap());
 
-    let solution = Result {
+    return Result {
         int: int,
         uint: uint,
         short: short,
@@ -52,14 +65,6 @@ fn unpack(problem_bytes: &str) {
         double: double,
         double_big_endian: double_big_endian
     };
-
-    let solution_json = convert_to_json(&solution);
-
-    println!("{solution_json}");
-}
-
-fn convert_to_json(solution: &Result) -> String {
-    serde_json::to_string(solution).expect("Could not serialize the solution!")
 }
 
 fn get_int(int_bytes: &[u8; 4]) -> i32 {
@@ -102,5 +107,8 @@ fn main() {
     let problem_struct: Problem = from_str(response).expect("The response is not in the format expected!");
     let problem_bytes: String = problem_struct.bytes;
 
-    unpack(&problem_bytes);
+    let solution: Result = unpack(&problem_bytes);
+    let response: &str = &rt.block_on(post_solution(&access_token, &solution));
+
+    println!("{response}");
 }

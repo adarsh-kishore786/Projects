@@ -2,7 +2,7 @@ use reqwest::get;
 use tokio::runtime::Runtime;
 use std::env;
 use dotenv::dotenv;
-use serde::Deserialize;
+use serde::{Serialize,Deserialize};
 use serde_json::from_str;
 use base64::{engine::general_purpose, Engine as _ };
 
@@ -14,6 +14,7 @@ struct Problem {
     bytes: String
 }
 
+#[derive(Serialize,Debug)]
 #[allow(dead_code)]
 struct Result {
     int: i32,
@@ -21,7 +22,7 @@ struct Result {
     short: i16,
     float: f32,
     double: f64,
-    double_network: f64
+    double_big_endian: f64
 }
 
 async fn get_problem(access_token: &str) -> String {
@@ -40,11 +41,25 @@ fn unpack(problem_bytes: &str) {
     let uint: u32 = get_uint(&problem[4..8].try_into().unwrap());
     let short: i16 = get_short(&problem[8..10].try_into().unwrap());
     let float: f32 = get_float(&problem[10..14].try_into().unwrap());
+    let double: f64 = get_double(&problem[14..22].try_into().unwrap());
+    let double_big_endian: f64 = get_double_big_endian(&problem[22..30].try_into().unwrap());
 
-    println!("{int}");
-    println!("{uint}");
-    println!("{short}");
-    println!("{float}");
+    let solution = Result {
+        int: int,
+        uint: uint,
+        short: short,
+        float: float,
+        double: double,
+        double_big_endian: double_big_endian
+    };
+
+    let solution_json = convert_to_json(&solution);
+
+    println!("{solution_json}");
+}
+
+fn convert_to_json(solution: &Result) -> String {
+    serde_json::to_string(solution).expect("Could not serialize the solution!")
 }
 
 fn get_int(int_bytes: &[u8; 4]) -> i32 {
@@ -65,6 +80,16 @@ fn get_short(short_bytes: &[u8; 2]) -> i16 {
 fn get_float(float_bytes: &[u8; 4]) -> f32 {
     let float: f32 = f32::from_le_bytes(*float_bytes);
     return float;
+}
+
+fn get_double(double_bytes: &[u8; 8]) -> f64 {
+    let double: f64 = f64::from_le_bytes(*double_bytes);
+    return double;
+}
+
+fn get_double_big_endian(double_big_endian_bytes: &[u8; 8]) -> f64 {
+    let double_big_endian: f64 = f64::from_le_bytes(*double_big_endian_bytes);
+    return double_big_endian;
 }
 
 fn main() {

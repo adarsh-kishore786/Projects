@@ -1,4 +1,4 @@
-use reqwest::get;
+use reqwest;
 use tokio::runtime::Runtime;
 use std::env;
 use dotenv::dotenv;
@@ -15,29 +15,28 @@ struct Problem {
 }
 
 #[derive(Serialize,Debug)]
-#[allow(dead_code)]
 struct Result {
     int: i32,
     uint: u32,
     short: i16,
     float: f32,
     double: f64,
-    double_big_endian: f64
+    big_endian_double: f64
 }
 
-async fn get_problem(access_token: &str) -> String {
-    let response = get(format!("{URL}/problem?access_token={access_token}"))
+async fn get_problem(client: &reqwest::Client, access_token: &str) -> String {
+    let response = client
+        .get(format!("{URL}/problem?access_token={access_token}"))
+        .send()
         .await
         .expect("Some error occured while reading response!");
 
     return response.text().await.expect("Some error occured while parsing the response!");
 }
 
-async fn post_solution(access_token: &str, solution: &Result) -> String {
-    let client = reqwest::Client::new();
-
+async fn post_solution(client: &reqwest::Client, access_token: &str, solution: &Result) -> String {
     let response = client
-        .post(format!("{URL}/solution?access_token={access_token}"))
+        .post(format!("{URL}/solve?access_token={access_token}&playground=1"))
         .json(solution)
         .send()
         .await
@@ -53,17 +52,17 @@ fn unpack(problem_bytes: &str) -> Result {
     let int: i32 = get_int(&problem[..4].try_into().unwrap());
     let uint: u32 = get_uint(&problem[4..8].try_into().unwrap());
     let short: i16 = get_short(&problem[8..10].try_into().unwrap());
-    let float: f32 = get_float(&problem[10..14].try_into().unwrap());
-    let double: f64 = get_double(&problem[14..22].try_into().unwrap());
-    let double_big_endian: f64 = get_double_big_endian(&problem[22..30].try_into().unwrap());
+    let float: f32 = get_float(&problem[12..16].try_into().unwrap());
+    let double: f64 = get_double(&problem[16..24].try_into().unwrap());
+    let big_endian_double: f64 = get_big_endian_double(&problem[24..32].try_into().unwrap());
 
     return Result {
-        int: int,
-        uint: uint,
-        short: short,
-        float: float,
-        double: double,
-        double_big_endian: double_big_endian
+        int,
+        uint,
+        short,
+        float,
+        double,
+        big_endian_double
     };
 }
 
@@ -92,9 +91,9 @@ fn get_double(double_bytes: &[u8; 8]) -> f64 {
     return double;
 }
 
-fn get_double_big_endian(double_big_endian_bytes: &[u8; 8]) -> f64 {
-    let double_big_endian: f64 = f64::from_le_bytes(*double_big_endian_bytes);
-    return double_big_endian;
+fn get_big_endian_double(big_endian_double_bytes: &[u8; 8]) -> f64 {
+    let big_endian_double: f64 = f64::from_be_bytes(*big_endian_double_bytes);
+    return big_endian_double;
 }
 
 fn main() {
@@ -102,13 +101,17 @@ fn main() {
 
     let access_token: String = env::var("ACCESS_TOKEN").expect("Couldn't find the access token in environment file!");
     let rt = Runtime::new().unwrap();
+    let client = reqwest::ClientBuilder::new()
+        .build()
+        .expect("Not able to initalize client!");
 
-    let response: &str = &rt.block_on(get_problem(&access_token));
+    let response: &str = &rt.block_on(get_problem(&client, &access_token));
     let problem_struct: Problem = from_str(response).expect("The response is not in the format expected!");
     let problem_bytes: String = problem_struct.bytes;
 
     let solution: Result = unpack(&problem_bytes);
-    let response: &str = &rt.block_on(post_solution(&access_token, &solution));
+    println!("{solution:?}");
+    let response: &str = &rt.block_on(post_solution(&client, &access_token, &solution));
 
     println!("{response}");
 }

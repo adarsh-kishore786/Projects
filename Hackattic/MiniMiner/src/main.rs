@@ -2,29 +2,35 @@ use reqwest;
 use tokio;
 use std::env;
 use dotenv::dotenv;
-use serde::Deserialize;
+use serde::{Serialize, Deserialize};
+use sha2::{Sha256, Digest};
 
 const URL: &str = "https://hackattic.com/challenges/mini_miner";
 
 #[derive(Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 struct Data {
-    hex: String,
-    int: i32
+    _hex: String,
+    _int: i32
 }
 
 #[derive(Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 struct Block {
-    nonce: Option<i32>,
+    _nonce: Option<i32>,
     data: Vec<Data>
 }
 
 #[derive(Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 struct Problem {
-    difficulty: i32,
+    difficulty: usize,
     block: Block
+}
+
+#[derive(Serialize, Debug)]
+struct Result {
+    nonce: i32
 }
 
 async fn get_problem(client: &reqwest::Client, access_token: &str) -> Problem {
@@ -39,11 +45,71 @@ async fn get_problem(client: &reqwest::Client, access_token: &str) -> Problem {
     return problem;
 }
 
-fn process(problem: &Problem) {
+fn process(problem: &Problem) -> Result {
     let difficulty = problem.difficulty;
     let block: &Block = &problem.block;
+    let data: &Vec<Data> = &block.data;
 
-    println!("{block:?}");
+    let data_str = construct_str(data);
+    let result_str = format!("{{\"data\":{data_str},\"nonce\":__NONCE__}}");
+
+    let nonce = find_nonce(difficulty, &result_str);
+    return Result {
+        nonce
+    };
+}
+
+fn find_nonce(difficulty: usize, base_str: &str) -> i32 {
+    let mut nonce = 0;
+
+    let ideal_hash = std::iter::repeat('0').take(difficulty).collect::<String>();
+
+    loop {
+        let res = base_str.replace("__NONCE__", &nonce.to_string());
+        let mut hasher = Sha256::new();
+        hasher.update(res);
+        let result = hasher.finalize();
+
+        let mut bit_string = String::from("");
+
+        for byte in result {
+            bit_string = format!("{bit_string}{byte:08b}")
+        }
+        let bit_string = &bit_string[..difficulty];
+
+        if bit_string == ideal_hash {
+            break; 
+        }
+
+        nonce += 1;
+    }
+
+    return nonce;
+}
+
+async fn post_solution(client: &reqwest::Client, access_token: &str, solution: &Result) -> String {
+    let response = client
+        .post(format!("{URL}/solve?access_token={access_token}&playground=1"))
+        .json(solution)
+        .send()
+        .await
+        .expect("Some error occured while sending the solution!");
+
+    return response.text()
+        .await
+        .expect("There was an error in reading the POST response!");
+}
+
+fn construct_str(data: &Vec<Data>) -> String {
+    let mut data_str = format!("{data:?}");
+    data_str = data_str.replace(" ", "")
+        .replace("Data", "")
+        .replace("{", "[")
+        .replace("}", "]")
+        .replace("_hex:", "")
+        .replace("_int:", "");
+
+    return data_str;
 }
 
 #[tokio::main]
@@ -57,5 +123,8 @@ async fn main() {
                  .expect("Not able to initialize client!");
 
     let problem = get_problem(&client, &access_token).await;
-    process(&problem);
+    let solution = process(&problem);
+    let response = post_solution(&client, &access_token, &solution).await;
+
+    println!("{response}");
 }

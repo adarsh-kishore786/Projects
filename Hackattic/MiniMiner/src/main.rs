@@ -89,7 +89,7 @@ fn find_nonce(difficulty: usize, base_str: &str) -> i32 {
 
 async fn post_solution(client: &reqwest::Client, access_token: &str, solution: &Result) -> String {
     let response = client
-        .post(format!("{URL}/solve?access_token={access_token}&playground=1"))
+        .post(format!("{URL}/solve?access_token={access_token}"))
         .json(solution)
         .send()
         .await

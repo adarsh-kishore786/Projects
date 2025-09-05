@@ -28,10 +28,12 @@ public class Main {
     System.exit(1);
   }
 
-  public static void main(String[] args) throws IOException {
-    if (args.length < 1) 
-      error("Supply a file to be counted!");
+  public static int countLines(String text) {
+    String lines[] = text.split(System.lineSeparator(), -1);
+    return lines.length-1;
+  }
 
+  public static void main(String[] args) throws IOException {
     boolean countCharacterOnly = false;
     boolean countLineOnly = false;
     boolean countWordOnly = false;
@@ -39,8 +41,6 @@ public class Main {
     String filePath = "";
 
     for (String arg : args) {
-      System.out.println(arg);
-
       if ((countCharacterOnly && countLineOnly) ||
           (countLineOnly && countWordOnly) ||
           (countCharacterOnly && countWordOnly)) {
@@ -58,9 +58,12 @@ public class Main {
         filePath = arg;
     }
 
-    System.out.println(filePath.split("\n")[0]);
-    System.out.println(countCharacterOnly);
-    System.out.println(countWordOnly);
-    System.out.println(countLineOnly);
+    if (filePath.isEmpty())
+      error("Usage: ./cwcc <file_name> [-wcl]");
+
+    String text = readFile(filePath);
+
+    if (countLineOnly)
+      System.out.println(countLines(text) + " " + filePath);
   }
 }

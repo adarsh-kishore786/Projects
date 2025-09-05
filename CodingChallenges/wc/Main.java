@@ -39,6 +39,10 @@ public class Main {
     return words.length-1;
   }
 
+  static int countCharacters(String text) {
+    return text.length();
+  }
+
   public static void main(String[] args) {
     boolean countCharacter = false;
     boolean countLine = false;
@@ -86,6 +90,9 @@ public class Main {
 
     if (countWord)
       response = response.replace("__WORDS__", "" + countWords(text));
+
+    if (countCharacter)
+      response = response.replace("__CHARS__", "" + countCharacters(text));
 
     response = response.replaceAll("__[A-Z]+__", "").trim();
     System.out.println(response);

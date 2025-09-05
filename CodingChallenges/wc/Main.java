@@ -3,6 +3,7 @@ package wc;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
+import java.util.Scanner;
 
 public class Main {
   static String readFile(String filePath) {
@@ -73,10 +74,22 @@ public class Main {
         filePath = arg;
     }
 
-    if (filePath.isEmpty())
-      error("Usage: ./cwcc <file_name> [-wcl]");
+    String text = "";
 
-    String text = readFile(filePath);
+    if (filePath.isEmpty()) {
+      Scanner sc = new Scanner(System.in);
+      StringBuilder sb = new StringBuilder();
+
+      while (sc.hasNextLine()) {
+        String line = sc.nextLine();
+        sb.append(line).append(System.lineSeparator());
+      }
+      text = sb.toString();
+    }
+    else {
+      text = readFile(filePath);
+    }
+
     String response = "__LINES__ __WORDS__ __CHARS__ " + filePath;
 
     if (!countCharacter && !countWord && !countLine) {

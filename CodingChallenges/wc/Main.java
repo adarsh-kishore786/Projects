@@ -23,14 +23,44 @@ public class Main {
     }
   }
 
+  public static void error(String message) {
+    System.err.println(message);
+    System.exit(1);
+  }
+
   public static void main(String[] args) throws IOException {
-    if (args.length < 1) {
-      System.err.println("Supply a file to be counted!");
-      System.exit(1);
+    if (args.length < 1) 
+      error("Supply a file to be counted!");
+
+    boolean countCharacterOnly = false;
+    boolean countLineOnly = false;
+    boolean countWordOnly = false;
+
+    String filePath = "";
+
+    for (String arg : args) {
+      System.out.println(arg);
+
+      if ((countCharacterOnly && countLineOnly) ||
+          (countLineOnly && countWordOnly) ||
+          (countCharacterOnly && countWordOnly)) {
+
+        error("Cannot give two or more flags simultaneously!");
+      }
+
+      if (arg.equals("-c")) 
+        countCharacterOnly = true;
+      else if (arg.equals("-l")) 
+        countLineOnly = true;
+      else if (arg.equals("-w")) 
+        countWordOnly = true;
+      else if (filePath.isEmpty()) 
+        filePath = arg;
     }
 
-    String text = readFile(args[0]);
-
-    System.out.println(text.split("\n")[0]);
+    System.out.println(filePath.split("\n")[0]);
+    System.out.println(countCharacterOnly);
+    System.out.println(countWordOnly);
+    System.out.println(countLineOnly);
   }
 }

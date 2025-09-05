@@ -53,6 +53,18 @@ public class Main {
         countLine = true;
       else if (arg.equals("-w")) 
         countWord = true;
+      else if (arg.equals("-cw") || arg.equals("-wc")) {
+        countCharacter = true;
+        countWord = true;
+      }
+      else if (arg.equals("-lw") || arg.equals("-wl")) {
+        countLine = true;
+        countWord = true;
+      }
+      else if (arg.equals("-cl") || arg.equals("-lc")) {
+        countCharacter = true;
+        countLine = true;
+      }
       else if (filePath.isEmpty()) 
         filePath = arg;
     }
@@ -62,6 +74,12 @@ public class Main {
 
     String text = readFile(filePath);
     String response = "__LINES__ __WORDS__ __CHARS__ " + filePath;
+
+    if (!countCharacter && !countWord && !countLine) {
+      countCharacter = true;
+      countWord = true;
+      countLine = true;
+    }
 
     if (countLine)
       response = response.replace("__LINES__", "" + countLines(text));

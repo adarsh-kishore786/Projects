@@ -35,7 +35,7 @@ public class Main {
   }
 
   static int countWords(String text) {
-    String words[] = text.split("[ \n]+", -1);
+    String words[] = text.split("[\\s]+", -1);
     return words.length-1;
   }
 

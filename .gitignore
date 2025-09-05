@@ -22,3 +22,6 @@ target/
 
 # Ignore simple text files
 *.txt
+
+# Ignore jar files
+*.jar

@@ -5,7 +5,7 @@ import java.io.FileReader;
 import java.io.IOException;
 
 public class Main {
-  public static String readFile(String filePath) throws IOException {
+  static String readFile(String filePath) {
     try (BufferedReader reader = new BufferedReader(new FileReader(filePath))) {
 
       StringBuilder text = new StringBuilder();
@@ -19,41 +19,40 @@ public class Main {
       return text.toString();
 
     } catch (IOException e) {
-      throw new IOException(e);
+      error("cwcc: " + filePath + ": No such file");
     }
+    return "";
   }
 
-  public static void error(String message) {
+  static void error(String message) {
     System.err.println(message);
     System.exit(1);
   }
 
-  public static int countLines(String text) {
+  static int countLines(String text) {
     String lines[] = text.split(System.lineSeparator(), -1);
     return lines.length-1;
   }
 
-  public static void main(String[] args) throws IOException {
-    boolean countCharacterOnly = false;
-    boolean countLineOnly = false;
-    boolean countWordOnly = false;
+  static int countWords(String text) {
+    String words[] = text.split("[ \n]+", -1);
+    return words.length-1;
+  }
+
+  public static void main(String[] args) {
+    boolean countCharacter = false;
+    boolean countLine = false;
+    boolean countWord = false;
 
     String filePath = "";
 
     for (String arg : args) {
-      if ((countCharacterOnly && countLineOnly) ||
-          (countLineOnly && countWordOnly) ||
-          (countCharacterOnly && countWordOnly)) {
-
-        error("Cannot give two or more flags simultaneously!");
-      }
-
       if (arg.equals("-c")) 
-        countCharacterOnly = true;
+        countCharacter = true;
       else if (arg.equals("-l")) 
-        countLineOnly = true;
+        countLine = true;
       else if (arg.equals("-w")) 
-        countWordOnly = true;
+        countWord = true;
       else if (filePath.isEmpty()) 
         filePath = arg;
     }
@@ -62,8 +61,15 @@ public class Main {
       error("Usage: ./cwcc <file_name> [-wcl]");
 
     String text = readFile(filePath);
+    String response = "__LINES__ __WORDS__ __CHARS__ " + filePath;
 
-    if (countLineOnly)
-      System.out.println(countLines(text) + " " + filePath);
+    if (countLine)
+      response = response.replace("__LINES__", "" + countLines(text));
+
+    if (countWord)
+      response = response.replace("__WORDS__", "" + countWords(text));
+
+    response = response.replaceAll("__[A-Z]+__", "").trim();
+    System.out.println(response);
   }
 }

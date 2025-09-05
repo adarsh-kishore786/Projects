@@ -13,3 +13,9 @@ target/
 
 # Ignore environment files
 .env
+
+# Ignore class files
+*.class
+
+# Ignore simple text files
+*.txt

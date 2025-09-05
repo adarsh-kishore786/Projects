@@ -25,3 +25,6 @@ target/
 
 # Ignore jar files
 *.jar
+
+# Ignote .sum files
+*.sum

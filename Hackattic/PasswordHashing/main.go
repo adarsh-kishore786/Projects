@@ -1,13 +1,14 @@
 package main
 
 import (
-  "fmt"
-  "log"
-  "os"
-  "net/http"
-  "io/ioutil"
-  "encoding/json"
   "crypto/sha256"
+  "encoding/base64"
+  "encoding/json"
+  "fmt"
+  "io/ioutil"
+  "log"
+  "net/http"
+  "os"
 
   "github.com/joho/godotenv"
 )
@@ -64,9 +65,22 @@ func GetProblem(accessToken string) Problem {
 
 func Process(problem Problem) {
   password := problem.Password
-  sha := GetSha256(password)
+  saltEncoded := problem.Salt
 
+  saltBytes, err := base64.StdEncoding.DecodeString(saltEncoded)
+  if err != nil {
+    log.Fatal(err)
+  }
+  salt := fmt.Sprintf("%x", saltBytes)
+  password += salt
+  fmt.Println(problem)
+
+  sha := GetSha256(password)
+  hmac := GettHMACSha256(password, salt)
+
+  fmt.Println(salt)
   fmt.Println(sha)
+  fmt.Println(hmac)
 }
 
 func GetSha256(password string) string {
@@ -74,6 +88,37 @@ func GetSha256(password string) string {
 
   h.Write([]byte(password))
   return fmt.Sprintf("%x", h.Sum(nil))
+}
+
+func GettHMACSha256(password string, secretKey string) string {
+  blockKey := ComputeBlockKeySha256(secretKey)
+
+  return blockKey 
+}
+
+func FullXOR(key string, val byte) string {
+  // keyBytes := []byte(key)
+  // valBytes := make([]byte, 64)
+
+  return key
+}
+
+func ComputeBlockKeySha256(key string) string {
+  l := len(key)
+
+  var blockKey string
+  blockSize := 64
+
+  if l > blockSize {
+    blockKey = GetSha256(key)
+  } else if (l < blockSize) {
+    blockKey = key
+    for _ = range(blockSize-l) {
+      blockKey += "0"
+    }
+  }
+
+  return blockKey
 }
 
 func main()  {

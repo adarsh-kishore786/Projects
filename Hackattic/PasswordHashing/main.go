@@ -6,13 +6,39 @@ import (
   "os"
   "net/http"
   "io/ioutil"
+  "encoding/json"
 
   "github.com/joho/godotenv"
 )
 
 const URL = "https://hackattic.com/challenges/password_hashing";
 
-func GetProblem(accessToken string) string {
+type Problem struct {
+  Password string `json:"password"`
+  Salt     string `json:"salt"`
+
+  Pbkdf2   struct {
+    Rounds int    `json:"rounds"`
+    Hash   string `json:"hash"`
+  } `json:"pbkdf2"`
+
+  Scrypt   struct {
+    N        int   `json:"N"`
+    R        int   `json:"r"`
+    P        int   `json:"p"`
+    Buflen   int   `json:"buflen"`
+    Control string `json:"_control"`
+  } `json:"scrypt"`
+}
+
+type Result struct {
+  Sha256 string
+  Hmac   string
+  Pbkdf2 string
+  Scrypt string
+}
+
+func GetProblem(accessToken string) Problem {
   response, err := http.Get(URL + "/problem?access_token=" + accessToken)
 
   if err != nil {
@@ -25,8 +51,17 @@ func GetProblem(accessToken string) string {
     log.Fatal(err)
   }
 
-  return string(responseData)
+  defer response.Body.Close()
+  var problem Problem
+  err = json.Unmarshal([]byte(responseData), &problem)
+  if err != nil {
+    log.Fatal(err)
+  }
+
+  return problem
 }
+
+func process(problem Problem)
 
 func main()  {
   err := godotenv.Load()

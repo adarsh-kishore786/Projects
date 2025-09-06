@@ -7,6 +7,7 @@ import (
   "net/http"
   "io/ioutil"
   "encoding/json"
+  "crypto/sha256"
 
   "github.com/joho/godotenv"
 )
@@ -23,11 +24,11 @@ type Problem struct {
   } `json:"pbkdf2"`
 
   Scrypt   struct {
-    N        int   `json:"N"`
-    R        int   `json:"r"`
-    P        int   `json:"p"`
-    Buflen   int   `json:"buflen"`
-    Control string `json:"_control"`
+    N        int    `json:"N"`
+    R        int    `json:"r"`
+    P        int    `json:"p"`
+    Buflen   int    `json:"buflen"`
+    Control  string `json:"_control"`
   } `json:"scrypt"`
 }
 
@@ -61,7 +62,19 @@ func GetProblem(accessToken string) Problem {
   return problem
 }
 
-func process(problem Problem)
+func Process(problem Problem) {
+  password := problem.Password
+  sha := GetSha256(password)
+
+  fmt.Println(sha)
+}
+
+func GetSha256(password string) string {
+  h := sha256.New()
+
+  h.Write([]byte(password))
+  return fmt.Sprintf("%x", h.Sum(nil))
+}
 
 func main()  {
   err := godotenv.Load()
@@ -71,5 +84,6 @@ func main()  {
 
   accessToken := os.Getenv("ACCESS_TOKEN")
 
-  fmt.Println(GetProblem(accessToken))
+  problem := GetProblem(accessToken)
+  Process(problem)
 }

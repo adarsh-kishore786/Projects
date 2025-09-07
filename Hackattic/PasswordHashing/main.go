@@ -3,6 +3,7 @@ package main
 import (
   "crypto/sha256"
   "encoding/base64"
+  "encoding/hex"
   "encoding/json"
   "fmt"
   "io/ioutil"
@@ -71,36 +72,42 @@ func Process(problem Problem) {
   if err != nil {
     log.Fatal(err)
   }
-  salt := fmt.Sprintf("%x", saltBytes)
+  salt := BytesAlpha(saltBytes)
+  secretKey := salt
   password += salt
-  fmt.Println(problem)
 
   sha := GetSha256(password)
-  hmac := GettHMACSha256(password, salt)
+  hmac := GetHMACSha256(password, secretKey)
 
-  fmt.Println(salt)
-  fmt.Println(sha)
-  fmt.Println(hmac)
+  fmt.Println("SHA-256 : " + sha)
+  fmt.Println("HMAC-256: " + hmac)
 }
 
 func GetSha256(password string) string {
   h := sha256.New()
 
   h.Write([]byte(password))
-  return fmt.Sprintf("%x", h.Sum(nil))
+  return BytesAlpha(h.Sum(nil))
 }
 
-func GettHMACSha256(password string, secretKey string) string {
+func GetHMACSha256(password string, secretKey string) string {
   blockKey := ComputeBlockKeySha256(secretKey)
+  ipad := FullXOR(blockKey, 54)
+  opad := FullXOR(blockKey, 92)
 
-  return blockKey 
+  message := GetSha256(opad + GetSha256(ipad + password))
+
+  return message 
 }
 
 func FullXOR(key string, val byte) string {
-  // keyBytes := []byte(key)
-  // valBytes := make([]byte, 64)
+  keyBytes := BytesInt(key)
 
-  return key
+  for i := range(len(keyBytes)) {
+    keyBytes[i] ^= val
+  }
+
+  return BytesAlpha(keyBytes)
 }
 
 func ComputeBlockKeySha256(key string) string {
@@ -119,6 +126,19 @@ func ComputeBlockKeySha256(key string) string {
   }
 
   return blockKey
+}
+
+func BytesAlpha(bytes []byte) string {
+  return fmt.Sprintf("%x", bytes)
+}
+
+func BytesInt(bytesAlpha string) []byte {
+  decodeBytes, err := hex.DecodeString(bytesAlpha)
+  if err != nil {
+    log.Fatal(err)
+  }
+
+  return decodeBytes
 }
 
 func main()  {

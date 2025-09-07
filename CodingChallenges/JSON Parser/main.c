@@ -11,4 +11,5 @@ int main(int argc, const char **argv) {
 
   char* text = readFile(argv[1]);
   printf("%s\n", text);
+  free(text);
 }

@@ -4,4 +4,4 @@ compile:
 	@gcc -o parse main.c
 
 execute:
-	@./parse
+	@./parse $(arg)

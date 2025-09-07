@@ -28,3 +28,6 @@ target/
 
 # Ignote .sum files
 *.sum
+
+# Ignore test directories
+test

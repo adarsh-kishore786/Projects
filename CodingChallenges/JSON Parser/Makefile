@@ -1,7 +1,7 @@
 all: compile execute
 
 compile:
-	@gcc -o parse main.c
+	@gcc -o parse *.c
 
 execute:
 	@./parse $(arg)

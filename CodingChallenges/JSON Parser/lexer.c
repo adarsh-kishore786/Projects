@@ -7,6 +7,10 @@
 #include "token_type.h"
 #include "util.h"
 
+static int i = 0;
+static int line = 0;
+static int column = 0;
+
 const char* get_string_token_type(TokenType *type) {
   switch (*type) {
     case LEFT_BRACE : return "LEFT_BRACE";
@@ -43,9 +47,7 @@ Token* get_tokens(const char *text) {
   if (tokens == NULL)
     end_program("A memory allocation error occured", EXIT_NO_MEMORY);
 
-  int i = 0;
-  int line = 0;
-  int column = 0;
+  int count = 0;
 
   while (i < strlen(text)) {
     char ch = text[i];
@@ -63,7 +65,7 @@ Token* get_tokens(const char *text) {
     }
   }
   TokenType eoj = EOJ;
-  tokens[i] = (Token) { eoj, line+1, 0, get_string_token_type(&eoj) };
+  tokens[i] = (Token) { eoj, line+2, 1, get_string_token_type(&eoj) };
 
   return tokens;
 }

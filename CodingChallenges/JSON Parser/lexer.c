@@ -40,8 +40,20 @@ enum Token* get_tokens(const char *text) {
   return tokens;
 }
 
+const char* get_string_token(enum Token *token) {
+  switch (*token) {
+    case LEFT_BRACE : return "LEFT_BRACE";
+    case RIGHT_BRACE: return "RIGHT_BRACE";
+    case COLON      : return "COLON";
+    case COMMA      : return "COMMA";
+    case LEFT_BAR   : return "LEFT_BAR";
+    case RIGHT_BAR  : return "RIGHT_BAR";
+  }
+  return ""; // Should never happen
+}
+
 void print_tokens(enum Token **tokens) {
   for (int i = 0; *(*tokens+i) != EOJ; i++) {
-    printf("%d ", *(*tokens+i));
+    printf("%s\n", get_string_token(*tokens+i));
   }
 }

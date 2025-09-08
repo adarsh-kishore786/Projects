@@ -7,7 +7,7 @@ typedef struct Token {
   enum TokenType token_type;
   int line;
   int column;
-  const char* value;
+  char* value;
 } Token;
 
 #endif

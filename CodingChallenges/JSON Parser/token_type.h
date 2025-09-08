@@ -4,8 +4,7 @@
 typedef enum TokenType {
   LEFT_BRACE,
   RIGHT_BRACE,
-  KEY,
-  VALUE,
+  VARIABLE,
   LEFT_BAR,
   RIGHT_BAR,
   COMMA,

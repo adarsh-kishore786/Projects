@@ -64,14 +64,17 @@ Token* get_tokens(const char *text) {
       tokens[i++] = (Token) { type, line, column++, get_string_token_type(&type) };
     }
   }
+
   TokenType eoj = EOJ;
-  tokens[i] = (Token) { eoj, line+2, 1, get_string_token_type(&eoj) };
+  tokens[i] = (Token) { eoj, line+1, 0, get_string_token_type(&eoj) };
 
   return tokens;
 }
 
 void print_tokens(Token **tokens) {
-  for (int i = 0; (*tokens+i)->token_type != EOJ; i++) {
+  int i;
+  for (i = 0; (*tokens+i)->token_type != EOJ; i++) {
     printf("%s\n", get_string_token_type(&(*tokens+i)->token_type));
   }
+  printf("%s\n", get_string_token_type(&(*tokens+i)->token_type));
 }

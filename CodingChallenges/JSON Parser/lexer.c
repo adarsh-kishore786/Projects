@@ -50,7 +50,7 @@ Token variable(const char *text) {
     column++;
   }
 
-  char value[i-start];
+  char *value = (char*)malloc(sizeof(char)*(i-start));
   strncpy(value, text+start, i-start);
   value[i-start-1] = '\0';
   i--;

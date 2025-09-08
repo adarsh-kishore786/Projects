@@ -2,11 +2,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-const int EXIT_NORMAL = 0;
-const int EXIT_FILE_NOT_FOUND = 1;
-
-void error(const char* message, int error_code) {
-  printf("%s\n", message);
+void end_program(const char* message, int error_code) {
+  printf("%s\nExiting with error code %d.\n", message, error_code);
   exit(error_code);
 }
 

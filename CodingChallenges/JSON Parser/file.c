@@ -2,9 +2,8 @@
 #include <string.h>
 #include <stdlib.h>
 
+#include "exit.h"
 #include "util.h"
-
-const extern int EXIT_FILE_NOT_FOUND;
 
 int getFileSize(FILE *fptr) {
   int prev = ftell(fptr);
@@ -21,7 +20,7 @@ char* readFile(const char *filePath) {
   FILE *fptr = fopen(filePath, "r");
 
   if (fptr == NULL) 
-    error(join_string(filePath, ": File not found."), EXIT_FILE_NOT_FOUND);
+    end_program(join_string(filePath, ": File not found"), FILE_NOT_FOUND);
 
   char *text = (char*)malloc(sizeof(char) * getFileSize(fptr));
   int c = 0;

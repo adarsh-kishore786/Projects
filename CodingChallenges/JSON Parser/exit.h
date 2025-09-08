@@ -2,8 +2,8 @@
 #define ENUM_EXIT
 
 enum EXIT {
-  NORMAL,
-  FILE_NOT_FOUND
+  EXIT_NORMAL,
+  EXIT_FILE_NOT_FOUND
 };
 
 #endif

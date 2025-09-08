@@ -7,7 +7,7 @@
 
 int main(int argc, const char **argv) {
   if (argc < 2) 
-    end_program("Usage: ./parse <file-name>", NORMAL);
+    end_program("Usage: ./parse <file-name>", EXIT_NORMAL);
 
   char* text = readFile(argv[1]);
   printf("%s\n", text);

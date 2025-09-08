@@ -2,8 +2,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "token.h"
-
 void end_program(const char *message, int error_code) {
   printf("%s\nExiting with error code %d.\n", message, error_code);
   exit(error_code);

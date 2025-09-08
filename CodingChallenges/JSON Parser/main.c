@@ -13,7 +13,7 @@ int main(int argc, const char **argv) {
 
   const char* text = read_file(argv[1]);
 
-  enum Token *tokens = get_tokens(text);
+  Token *tokens = get_tokens(text);
   if (tokens != NULL)
     print_tokens(&tokens);
 

@@ -5,7 +5,7 @@
 #include "exit.h"
 #include "util.h"
 
-int getFileSize(FILE *fptr) {
+int get_file_size(FILE *fptr) {
   int prev = ftell(fptr);
   fseek(fptr, 0L, SEEK_END);
   int sz = ftell(fptr);
@@ -14,7 +14,7 @@ int getFileSize(FILE *fptr) {
   return sz;
 }
 
-char* readFile(const char *filePath) {
+char* read_file(const char *filePath) {
   char ch;
 
   FILE *fptr = fopen(filePath, "r");
@@ -22,11 +22,14 @@ char* readFile(const char *filePath) {
   if (fptr == NULL) 
     end_program(join_string(filePath, ": File not found"), EXIT_FILE_NOT_FOUND);
 
-  char *text = (char*)malloc(sizeof(char) * getFileSize(fptr));
+  int file_size = get_file_size(fptr);
+  char *text = (char*)malloc(sizeof(char) * (file_size+1));
   int c = 0;
 
   while ((ch = fgetc(fptr)) != EOF) 
     text[c++] = ch;
+
+  text[c] = '\0';
 
   fclose(fptr);
 

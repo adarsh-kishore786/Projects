@@ -5,3 +5,7 @@ compile:
 
 execute:
 	@./parse $(arg)
+
+debug:
+	@gcc -g -o parse *.c
+	@gdb parse

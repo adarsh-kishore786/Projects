@@ -1,9 +1,11 @@
-#ifndef ENUM_EXIT
-#define ENUM_EXIT
+#ifndef EXIT_H
+#define EXIT_H
 
 enum EXIT {
   EXIT_NORMAL,
-  EXIT_FILE_NOT_FOUND
+  EXIT_FILE_NOT_FOUND,
+  EXIT_NO_MEMORY,
+  EXIT_INVALID_JSON
 };
 
 #endif

@@ -61,12 +61,13 @@ Token* get_tokens(const char *text) {
       column++;
     } else {
       TokenType type = get_simple_token_type(ch, line, column);
-      tokens[i++] = (Token) { type, line, column++, get_string_token_type(&type) };
+      tokens[count++] = (Token) { type, line, column++, get_string_token_type(&type) };
+      i++;
     }
   }
 
   TokenType eoj = EOJ;
-  tokens[i] = (Token) { eoj, line+1, 0, get_string_token_type(&eoj) };
+  tokens[count] = (Token) { eoj, line+1, 0, get_string_token_type(&eoj) };
 
   return tokens;
 }

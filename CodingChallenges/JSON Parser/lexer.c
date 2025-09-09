@@ -157,7 +157,7 @@ Token* get_tokens(const char *text) {
       tokens[count++] = process_alpha(text, "false", BOOLEAN);
     } else if (ch == 'n') {
       tokens[count++] = process_alpha(text, "null", NIL);
-    } else if (isdigit(ch) || ch == '-' || ch == '.') {
+    } else if (isdigit(ch) || ch == '-') {
       tokens[count++] = process_digit(text);
     } else {
       TokenType type = get_simple_token_type(ch, line, column);

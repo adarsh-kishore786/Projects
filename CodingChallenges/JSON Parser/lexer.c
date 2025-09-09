@@ -15,7 +15,7 @@ static int column = 0;
 const char* variable_error_message = "Error: Malformed variable at line %d:%d";
 
 void lexer_error(const char *message) {
-  printf(message, line+1, column+1);
+  printf(message, line+1, column+2);
   end_program("", EXIT_INVALID_JSON);
 }
 
@@ -78,28 +78,39 @@ Token process_alpha(const char *text, char *expect, TokenType return_type) {
     column++;
   }
 
-  if (!isAtEnd(text) && isalnum(text[i])) {
-    column++;
+  if (!isAtEnd(text) && isalnum(text[i])) 
     lexer_error(variable_error_message);
-  }
+
   i--;
 
   return (Token) { return_type, line, column, expect[0] == 'n' ? "": expect }; // don't print null
 }
 
 Token process_digit(const char* text) {
-  int start = i;
-
+  int start = i++;
   char ch = text[i];
+  const char *error_message = "Error: Malformed number at line %d:%d";
+  int dotAppeared = 0;
 
-  while (!isAtEnd(text) && isdigit(ch)) {
+  while (!isAtEnd(text) && (isdigit(ch) || ch == '.')) {
+    if (ch == '.') {
+      if (dotAppeared == 1)
+        lexer_error(error_message);
+
+      dotAppeared = 1;
+    }
+
     ch = text[i++];
     column++;
   }
 
-  char *value = (char*)malloc(sizeof(char)*(i-start+1));
-  strncpy(value, text+start, i-start-1);
-  value[i-start] = '\0';
+  char *value = (char*)malloc(sizeof(char)*(i-start));
+  strncpy(value, text+start, i-start);
+  if (i > start+1) { 
+    value[i-start-1] = '\0'; 
+  } else {
+    value[i-start] = '\0';
+  }
   i--;
 
   return (Token) { NUMBER, line, column, value };
@@ -146,7 +157,7 @@ Token* get_tokens(const char *text) {
       tokens[count++] = process_alpha(text, "false", BOOLEAN);
     } else if (ch == 'n') {
       tokens[count++] = process_alpha(text, "null", NIL);
-    } else if (isdigit(ch)) {
+    } else if (isdigit(ch) || ch == '-' || ch == '.') {
       tokens[count++] = process_digit(text);
     } else {
       TokenType type = get_simple_token_type(ch, line, column);

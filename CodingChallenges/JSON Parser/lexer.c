@@ -12,7 +12,14 @@ static int i = 0;
 static int line = 0;
 static int column = 0;
 
-int isAtEnd(const char* text) {
+const char* variable_error_message = "Error: Malformed variable at line %d:%d";
+
+void lexer_error(const char *message) {
+  printf(message, line+1, column+1);
+  end_program("", EXIT_INVALID_JSON);
+}
+
+int isAtEnd(const char *text) {
   return i >= strlen(text);
 }
 
@@ -24,27 +31,26 @@ const char* get_string_token_type(TokenType *type) {
     case COMMA      : return "COMMA";
     case LEFT_BAR   : return "LEFT_BAR";
     case RIGHT_BAR  : return "RIGHT_BAR";
+    case STRING     : return "STRING";
+    case BOOLEAN    : return "BOOLEAN";
+    case NIL        : return "NIL";
     case EOJ        : return "EOJ";
-    case VARIABLE   : return "VARIABLE";
   }
   return ""; // Should never happen
 }
 
-Token variable(const char *text) {
+Token string(const char *text) {
   int start = ++i;
+  const char* error_message = "Error: Unterminated string on line %d:%d";
 
-  if (isAtEnd(text)) {
-    printf("Error: Unterminated string on line %d", line);
-    end_program("", EXIT_INVALID_JSON);
-  }
+  if (isAtEnd(text)) 
+    lexer_error(error_message);
 
   char ch = text[i];
 
   while (ch != text[start-1]) {
-    if (isAtEnd(text) || ch == '\n') {
-      printf("Error: Unterminated string on line %d:%d", line+1, column+1);
-      end_program("", EXIT_INVALID_JSON);
-    }
+    if (isAtEnd(text) || ch == '\n') 
+      lexer_error(error_message);
 
     ch = text[i++];
     column++;
@@ -55,7 +61,29 @@ Token variable(const char *text) {
   value[i-start-1] = '\0';
   i--;
 
-  return (Token) { VARIABLE, line, column, value };
+  return (Token) { STRING, line, column, value };
+}
+
+Token process_alpha(const char *text, char *expect, TokenType return_type) {
+  int start = i++;
+  
+  column++;
+  int c = 0;
+
+  while (++c < strlen(expect)) {
+    if (isAtEnd(text) || expect[c] != text[i++]) 
+      lexer_error(variable_error_message);
+
+    column++;
+  }
+
+  if (!isAtEnd(text) && isalnum(text[i])) {
+    column++;
+    lexer_error(variable_error_message);
+  }
+  i--;
+
+  return (Token) { return_type, line, column, expect[0] == 'n' ? "": expect }; // don't print null
 }
 
 TokenType get_simple_token_type(char ch, int line, int column) {
@@ -92,7 +120,13 @@ Token* get_tokens(const char *text) {
     } else if (ch == ' ') {
       column++;
     } else if (ch == '\"' || ch == '\'') {
-      tokens[count++] = variable(text);
+      tokens[count++] = string(text);
+    } else if (ch == 't') {
+      tokens[count++] = process_alpha(text, "true", BOOLEAN);
+    } else if (ch == 'f') {
+      tokens[count++] = process_alpha(text, "false", BOOLEAN);
+    } else if (ch == 'n') {
+      tokens[count++] = process_alpha(text, "null", NIL);
     } else {
       TokenType type = get_simple_token_type(ch, line, column);
       tokens[count++] = (Token) { type, line, column++, "" };

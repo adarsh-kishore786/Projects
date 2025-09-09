@@ -34,12 +34,13 @@ const char* get_string_token_type(TokenType *type) {
     case STRING     : return "STRING";
     case BOOLEAN    : return "BOOLEAN";
     case NIL        : return "NIL";
+    case NUMBER     : return "NUMBER";
     case EOJ        : return "EOJ";
   }
   return ""; // Should never happen
 }
 
-Token string(const char *text) {
+Token process_string(const char *text) {
   int start = ++i;
   const char* error_message = "Error: Unterminated string on line %d:%d";
 
@@ -86,6 +87,24 @@ Token process_alpha(const char *text, char *expect, TokenType return_type) {
   return (Token) { return_type, line, column, expect[0] == 'n' ? "": expect }; // don't print null
 }
 
+Token process_digit(const char* text) {
+  int start = i;
+
+  char ch = text[i];
+
+  while (!isAtEnd(text) && isdigit(ch)) {
+    ch = text[i++];
+    column++;
+  }
+
+  char *value = (char*)malloc(sizeof(char)*(i-start+1));
+  strncpy(value, text+start, i-start-1);
+  value[i-start] = '\0';
+  i--;
+
+  return (Token) { NUMBER, line, column, value };
+}
+
 TokenType get_simple_token_type(char ch, int line, int column) {
   switch (ch) {
     case '{': return LEFT_BRACE;
@@ -120,13 +139,15 @@ Token* get_tokens(const char *text) {
     } else if (ch == ' ') {
       column++;
     } else if (ch == '\"' || ch == '\'') {
-      tokens[count++] = string(text);
+      tokens[count++] = process_string(text);
     } else if (ch == 't') {
       tokens[count++] = process_alpha(text, "true", BOOLEAN);
     } else if (ch == 'f') {
       tokens[count++] = process_alpha(text, "false", BOOLEAN);
     } else if (ch == 'n') {
       tokens[count++] = process_alpha(text, "null", NIL);
+    } else if (isdigit(ch)) {
+      tokens[count++] = process_digit(text);
     } else {
       TokenType type = get_simple_token_type(ch, line, column);
       tokens[count++] = (Token) { type, line, column++, "" };

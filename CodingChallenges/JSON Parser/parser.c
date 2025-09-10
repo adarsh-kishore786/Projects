@@ -18,7 +18,7 @@ int is_at_end(Token **tokens) {
 void invalid_json(Token **tokens) {
   Token *token = *tokens+i;
 
-  printf("Error: Invalid token at line %d:%d", token->line, token->column);
+  printf("Error: Invalid token %s at line %d:%d", get_string_token_type(&token->token_type), token->line, token->column);
   end_program("", EXIT_INVALID_JSON);
 }
 
@@ -31,6 +31,7 @@ void expect(Token **tokens, const TokenType type) {
 
 void object(Token **tokens) {
   expect(tokens, LEFT_BRACE);
+  
   expect(tokens, RIGHT_BRACE);
 }
 

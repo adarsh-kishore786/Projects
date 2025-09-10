@@ -23,25 +23,10 @@ int isAtEnd(const char *text) {
   return i >= strlen(text);
 }
 
-const char* get_string_token_type(TokenType *type) {
-  switch (*type) {
-    case LEFT_BRACE : return "LEFT_BRACE";
-    case RIGHT_BRACE: return "RIGHT_BRACE";
-    case COLON      : return "COLON";
-    case COMMA      : return "COMMA";
-    case LEFT_BAR   : return "LEFT_BAR";
-    case RIGHT_BAR  : return "RIGHT_BAR";
-    case STRING     : return "STRING";
-    case BOOLEAN    : return "BOOLEAN";
-    case NIL        : return "NIL";
-    case NUMBER     : return "NUMBER";
-    case EOJ        : return "EOJ";
-  }
-  return ""; // Should never happen
-}
-
 Token process_string(const char *text) {
-  int start = ++i;
+  const int start = ++i;
+  const int start_in_line = column;
+
   const char* error_message = "Error: Unterminated string on line %d:%d";
 
   if (isAtEnd(text)) 
@@ -62,11 +47,12 @@ Token process_string(const char *text) {
   value[i-start-1] = '\0';
   i--;
 
-  return (Token) { STRING, line+1, column+1, value };
+  return (Token) { STRING, line+1, start_in_line+1, value };
 }
 
 Token process_alpha(const char *text, char *expect, TokenType return_type) {
-  int start = i++;
+  const int start = i++;
+  const int start_in_line = column;
   
   column++;
   int c = 0;
@@ -83,11 +69,13 @@ Token process_alpha(const char *text, char *expect, TokenType return_type) {
 
   i--;
 
-  return (Token) { return_type, line+1, column+1, expect[0] == 'n' ? "": expect }; // don't print null
+  return (Token) { return_type, line+1, start_in_line+1, expect[0] == 'n' ? "": expect }; // don't print null
 }
 
 Token process_digit(const char* text) {
-  int start = i++;
+  const int start = i++;
+  const int start_in_line = column;
+
   char ch = text[i];
   const char *error_message = "Error: Malformed number at line %d:%d";
   int dotAppeared = 0;
@@ -113,7 +101,7 @@ Token process_digit(const char* text) {
   }
   i--;
 
-  return (Token) { NUMBER, line+1, column+1, value };
+  return (Token) { NUMBER, line+1, start_in_line+1, value };
 }
 
 TokenType get_simple_token_type(char ch, int line, int column) {

@@ -168,5 +168,5 @@ void print_tokens(Token **tokens) {
 
     printf("\n");
   }
-  printf("%s\n", get_string_token_type(&(*tokens+j)->token_type));
+  printf("%s\n\n", get_string_token_type(&(*tokens+j)->token_type));
 }

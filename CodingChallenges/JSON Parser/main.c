@@ -4,6 +4,7 @@
 #include "exit.h"
 #include "file.h"
 #include "lexer.h"
+#include "parser.h"
 #include "token.h"
 #include "util.h"
 
@@ -17,5 +18,5 @@ int main(int argc, const char **argv) {
   if (tokens != NULL)
     print_tokens(&tokens);
 
-  end_program("", EXIT_NORMAL);
+  parse(&tokens);
 }

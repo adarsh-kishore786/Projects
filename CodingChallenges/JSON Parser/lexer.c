@@ -62,7 +62,7 @@ Token process_string(const char *text) {
   value[i-start-1] = '\0';
   i--;
 
-  return (Token) { STRING, line, column, value };
+  return (Token) { STRING, line+1, column+1, value };
 }
 
 Token process_alpha(const char *text, char *expect, TokenType return_type) {
@@ -83,7 +83,7 @@ Token process_alpha(const char *text, char *expect, TokenType return_type) {
 
   i--;
 
-  return (Token) { return_type, line, column, expect[0] == 'n' ? "": expect }; // don't print null
+  return (Token) { return_type, line+1, column+1, expect[0] == 'n' ? "": expect }; // don't print null
 }
 
 Token process_digit(const char* text) {
@@ -113,7 +113,7 @@ Token process_digit(const char* text) {
   }
   i--;
 
-  return (Token) { NUMBER, line, column, value };
+  return (Token) { NUMBER, line+1, column+1, value };
 }
 
 TokenType get_simple_token_type(char ch, int line, int column) {
@@ -132,9 +132,6 @@ TokenType get_simple_token_type(char ch, int line, int column) {
 }
 
 Token* get_tokens(const char *text) {
-  if (strlen(text) == 0)
-    end_program("Empty file", EXIT_INVALID_JSON);
-
   Token *tokens = (Token*)malloc((strlen(text)+1)*sizeof(Token));
   if (tokens == NULL)
     end_program("A memory allocation error occured", EXIT_NO_MEMORY);
@@ -161,13 +158,13 @@ Token* get_tokens(const char *text) {
       tokens[count++] = process_digit(text);
     } else {
       TokenType type = get_simple_token_type(ch, line, column);
-      tokens[count++] = (Token) { type, line, column++, "" };
+      tokens[count++] = (Token) { type, line+1, ++column, "" };
     }
     i++;
   }
 
   TokenType eoj = EOJ;
-  tokens[count] = (Token) { eoj, line+1, 0, "" };
+  tokens[count] = (Token) { eoj, line+1, 1, "" };
 
   return tokens;
 }

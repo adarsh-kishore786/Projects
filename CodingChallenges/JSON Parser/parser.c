@@ -122,7 +122,13 @@ int object(Token **tokens) {
 }
 
 void parse(Token **tokens) {
-  int code = object(tokens);
+  int res = object(tokens);
+  int code;
+
+  if (!res && i != 0)
+    code = 0;
+  else
+    code = array(tokens);
 
   if (code == 0) {
     Token *token = *tokens+i;

@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <string.h>
 
 #include "exit.h"
 #include "token.h"
@@ -9,8 +10,10 @@ static int i = 0;
 
 int object(Token**);
 int record(Token**);
+int records(Token**);
 int key(Token**);
 int value(Token**);
+int array(Token**);
 
 TokenType get_type(Token **tokens) {
   return (*tokens + i)->token_type;
@@ -40,56 +43,82 @@ int key(Token **tokens) {
   return expect(tokens, STRING);
 }
 
-// value -> BOOLEAN | STRING | NUMBER | NIL
+// array -> LEFT_BAR value (COMMA if not last) RIGHT_BAR
+int array(Token **tokens) {
+  if (!expect(tokens, LEFT_BAR))
+    return 0;
+
+  do {
+    if (!value(tokens))
+      return 0;
+  } while (expect(tokens, COMMA));
+
+  return expect(tokens, RIGHT_BAR);
+}
+
+// value -> BOOLEAN | STRING | NUMBER | NIL | object | array
 int value(Token **tokens) {
-  return (
+  int simple = (
     expect(tokens, BOOLEAN) ||
     expect(tokens, STRING)  ||
     expect(tokens, NUMBER)  ||
     expect(tokens, NIL)
   );
+
+  if (simple == 1)
+    return simple;
+
+  const int start = i;
+  int res = object(tokens);
+  if (!res && i != start)
+    return 0;
+
+  if (!res)
+    return array(tokens);
+  return 1;
 }
 
-// record -> key COLON value (COMMA if last)
+// record -> key COLON value
 int record(Token **tokens) {
-  int res = 1;
+  return (
+    key(tokens) &&
+    expect(tokens, COLON) &&
+    value(tokens)
+  );
+}
+
+// records -> (object | record)* (COMMA if not last)
+int records(Token **tokens) {
   do {
-    res = res && (
-      key(tokens) &&
-      expect(tokens, COLON) &&
-      value(tokens)
-    );
+    const int start = i;
+
+    int res = object(tokens);
+    if (!res && i != start)
+      return 0;
+
+    if (!res) {
+      res = record(tokens);
+      if (!res)
+        return 0;
+    }    
   } while (expect(tokens, COMMA));
 
-  return res;
-}
-
-// line -> object | record | empty
-int line(Token **tokens) {
-  const int start = i;
-
-  if (object(tokens) == 1)
-    return 1;
-  if (i != start)
-    return 0;
-
-  if (record(tokens) == 1)
-    return 1;
-  if (i != start)
-    return 0;
-
-  // means it is empty
   return 1;
 }
 
 // The BNF diagram would be:
-// object -> LEFT_BRACE line RIGHT_BRACE
+// object -> LEFT_BRACE records RIGHT_BRACE
+// object -> LEFT_BRACE RIGHT_BRACE
 int object(Token **tokens) {
-  return ( 
-    expect(tokens, LEFT_BRACE) &&
-    line(tokens) &&
-    expect(tokens, RIGHT_BRACE)
-  );
+  if (!expect(tokens, LEFT_BRACE))
+    return 0;
+
+  const int start = i;
+
+  if (!records(tokens) && i != start)
+    return 0;
+
+  return expect(tokens, RIGHT_BRACE);
 }
 
 void parse(Token **tokens) {
@@ -98,11 +127,18 @@ void parse(Token **tokens) {
   if (code == 0) {
     Token *token = *tokens+i;
 
-    printf("Error: Invalid token %s with value \'%s\' at line %d:%d", 
+    if (strlen(token->value) > 0) {
+      printf("Error: Invalid token %s with value \'%s\' at line %d:%d", 
            get_string_token_type(&token->token_type),
            token->value,
            token->line,
            token->column);
+    } else {
+      printf("Error: Invalid token %s at line %d:%d", 
+           get_string_token_type(&token->token_type),
+           token->line,
+           token->column);
+    }
 
     end_program("", EXIT_INVALID_JSON);
   }

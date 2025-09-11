@@ -12,8 +12,6 @@ static int i = 0;
 static int line = 0;
 static int column = 0;
 
-const char* variable_error_message = "Error: Malformed variable at line %d:%d";
-
 void lexer_error(const char *message) {
   printf(message, line+1, column+2);
   end_program("", EXIT_INVALID_JSON);
@@ -51,6 +49,8 @@ Token process_string(const char *text) {
 }
 
 Token process_alpha(const char *text, char *expect, TokenType return_type) {
+  const char* variable_error_message = "Error: Malformed variable at line %d:%d";
+
   const int start = i++;
   const int start_in_line = column;
   
@@ -88,17 +88,13 @@ Token process_digit(const char* text) {
       dotAppeared = 1;
     }
 
-    ch = text[i++];
+    ch = text[++i];
     column++;
   }
 
-  char *value = (char*)malloc(sizeof(char)*(i-start));
+  char *value = (char*)malloc(sizeof(char)*(i-start+1));
   strncpy(value, text+start, i-start);
-  if (i > start+1) { 
-    value[i-start-1] = '\0'; 
-  } else {
-    value[i-start] = '\0';
-  }
+  value[i-start] = '\0'; 
   i--;
 
   return (Token) { NUMBER, line+1, start_in_line+1, value };

@@ -128,7 +128,7 @@ void parse(Token **tokens) {
   if (!res && i != 0)
     code = 0;
   else
-    code = array(tokens);
+    code = res || array(tokens);
 
   if (code == 0) {
     Token *token = *tokens+i;

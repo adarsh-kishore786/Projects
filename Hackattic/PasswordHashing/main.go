@@ -73,14 +73,16 @@ func Process(problem Problem) {
     log.Fatal(err)
   }
   salt := BytesAlpha(saltBytes)
-  secretKey := salt
+  secretKey := ComputeBlockKeySha256(salt)
   password += salt
 
   sha := GetSha256(password)
   hmac := GetHMACSha256(password, secretKey)
+  pbkdf2 := GetPbkdf2(password, secretKey, problem.Pbkdf2.Rounds)
 
   fmt.Println("SHA-256 : " + sha)
   fmt.Println("HMAC-256: " + hmac)
+  fmt.Println("Pbkdf2  : " + pbkdf2)
 }
 
 func GetSha256(password string) string {
@@ -91,16 +93,38 @@ func GetSha256(password string) string {
 }
 
 func GetHMACSha256(password string, secretKey string) string {
-  blockKey := ComputeBlockKeySha256(secretKey)
-  ipad := FullXOR(blockKey, 54)
-  opad := FullXOR(blockKey, 92)
+  ipad := ByteXOR(secretKey, 54)
+  opad := ByteXOR(secretKey, 92)
 
   message := GetSha256(opad + GetSha256(ipad + password))
 
   return message 
 }
 
-func FullXOR(key string, val byte) string {
+func GetPbkdf2(password string, secretKey string, rounds int) string {
+  input := secretKey
+  result := ComputeBlockKeySha256("0")
+
+  for _ = range(rounds) {
+    input = GetHMACSha256(password, input)
+    result = FullXOR(result, input)
+  }
+
+  return result
+}
+
+func FullXOR(str1 string, str2 string) string {
+  bytes1 := BytesInt(str1)
+  bytes2 := BytesInt(str2)
+
+  for i := range(len(bytes1)) {
+    bytes1[i] ^= bytes2[i] 
+  }
+
+  return BytesAlpha(bytes1)
+}
+
+func ByteXOR(key string, val byte) string {
   keyBytes := BytesInt(key)
 
   for i := range(len(keyBytes)) {

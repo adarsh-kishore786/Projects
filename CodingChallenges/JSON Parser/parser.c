@@ -130,7 +130,7 @@ void parse(Token **tokens) {
   else
     code = res || array(tokens);
 
-  if (code == 0) {
+  if (code == 0 || !is_at_end(tokens)) {
     Token *token = *tokens+i;
 
     if (strlen(token->value) > 0) {

@@ -3,6 +3,7 @@ package main
 import (
   "crypto/sha256"
   "encoding/base64"
+  "encoding/binary"
   "encoding/hex"
   "encoding/json"
   "fmt"
@@ -76,9 +77,11 @@ func Process(problem Problem) {
   secretKey := ComputeBlockKeySha256(salt)
   password += salt
 
+  fmt.Println(len(password))
+
   sha := GetSha256(password)
   hmac := GetHMACSha256(password, secretKey)
-  pbkdf2 := GetPbkdf2(password, secretKey, problem.Pbkdf2.Rounds)
+  pbkdf2 := GetPbkdf2(password, secretKey, problem.Pbkdf2.Rounds, 64)
 
   fmt.Println("SHA-256 : " + sha)
   fmt.Println("HMAC-256: " + hmac)
@@ -101,16 +104,29 @@ func GetHMACSha256(password string, secretKey string) string {
   return message 
 }
 
-func GetPbkdf2(password string, secretKey string, rounds int) string {
+func GetPbkdf2(password string, secretKey string, c int, dkLen int) string {
   input := secretKey
-  result := ComputeBlockKeySha256("0")
+  result := ""
 
-  for _ = range(rounds) {
-    input = GetHMACSha256(password, input)
-    result = FullXOR(result, input)
+  for i := range(dkLen / 64) {
+    temp := secretKey + GetBigEndian(i)
+    fmt.Println(temp)
+
+    for _ = range(c) {
+      input = GetHMACSha256(password, input)
+      temp = FullXOR(temp, input)
+    }
+
+    result += temp
   }
 
   return result
+}
+
+func GetScrypt(password string, secretKey string, r int, p int, buflen int) string {
+  stretchkedKey := GetPbkdf2(password, secretKey, 1, (p * r * 128) / 64)
+
+  return stretchkedKey
 }
 
 func FullXOR(str1 string, str2 string) string {
@@ -132,6 +148,14 @@ func ByteXOR(key string, val byte) string {
   }
 
   return BytesAlpha(keyBytes)
+}
+
+func GetBigEndian(num int) string {
+  buf := make([]byte, 8)
+
+  binary.BigEndian.PutUint64(buf, uint64(num))
+  
+  return BytesAlpha(buf)
 }
 
 func ComputeBlockKeySha256(key string) string {

@@ -13,10 +13,7 @@ int main(int argc, const char **argv) {
     end_program("Usage: ./parse <file-name>", EXIT_NORMAL);
 
   const char* text = read_file(argv[1]);
-
   Token *tokens = get_tokens(text);
-  if (tokens != NULL)
-    print_tokens(&tokens);
 
   parse(&tokens);
 }

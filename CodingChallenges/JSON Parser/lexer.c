@@ -17,24 +17,48 @@ void lexer_error(const char *message) {
   end_program("", EXIT_INVALID_JSON);
 }
 
-int isAtEnd(const char *text) {
+int lexer_is_at_end(const char *text) {
   return i >= strlen(text);
+}
+
+char lexer_peek(const char *text) {
+  if (i+1 >= strlen(text))
+    return '\0';
+
+  return text[i+1];
 }
 
 Token process_string(const char *text) {
   const int start = ++i;
   const int start_in_line = column;
 
-  const char* error_message = "Error: Unterminated string on line %d:%d";
+  const char *unterminated_error_message = "Error: Unterminated string on line %d:%d";
+  const char *tab_error_message = "Error: Unescaped tab on line %d:%d";
+  const char *invalid_escape_error_message = "Error: Invalid escape character on line %d:%d";
 
-  if (isAtEnd(text)) 
-    lexer_error(error_message);
+  if (lexer_is_at_end(text)) 
+    lexer_error(unterminated_error_message);
 
   char ch = text[i];
 
   while (ch != text[start-1]) {
-    if (isAtEnd(text) || ch == '\n') 
-      lexer_error(error_message);
+    if (lexer_is_at_end(text) || ch == '\n') 
+      lexer_error(unterminated_error_message);
+
+    if (ch == '\t')
+      lexer_error(tab_error_message);
+
+    if (ch == '\\') {
+      if (
+        lexer_peek(text) != 'n' &&
+        lexer_peek(text) != 't' &&
+        lexer_peek(text) != 'r' &&
+        lexer_peek(text) != '\\' &&
+        lexer_peek(text) != '\'' &&
+        lexer_peek(text) != '\"'
+      )
+        lexer_error(invalid_escape_error_message);
+    }
 
     ch = text[i++];
     column++;
@@ -58,13 +82,13 @@ Token process_alpha(const char *text, char *expect, TokenType return_type) {
   int c = 0;
 
   while (++c < strlen(expect)) {
-    if (isAtEnd(text) || expect[c] != text[i++]) 
+    if (lexer_is_at_end(text) || expect[c] != text[i++]) 
       lexer_error(variable_error_message);
 
     column++;
   }
 
-  if (!isAtEnd(text) && isalnum(text[i])) 
+  if (!lexer_is_at_end(text) && isalnum(text[i])) 
     lexer_error(variable_error_message);
 
   i--;
@@ -80,7 +104,10 @@ Token process_digit(const char* text) {
   const char *error_message = "Error: Malformed number at line %d:%d";
   int dotAppeared = 0;
 
-  while (!isAtEnd(text) && (isdigit(ch) || ch == '.')) {
+  if (text[start] == '0')
+    lexer_error(error_message);
+
+  while (!lexer_is_at_end(text) && (isdigit(ch) || ch == '.')) {
     if (ch == '.') {
       if (dotAppeared == 1)
         lexer_error(error_message);
@@ -130,7 +157,7 @@ Token* get_tokens(const char *text) {
       column = 0;
     } else if (ch == ' ') {
       column++;
-    } else if (ch == '\"' || ch == '\'') {
+    } else if (ch == '\"') {
       tokens[count++] = process_string(text);
     } else if (ch == 't') {
       tokens[count++] = process_alpha(text, "true", BOOLEAN);

@@ -28,6 +28,13 @@ char lexer_peek(const char *text) {
   return text[i+1];
 }
 
+char lexer_peek_twice(const char *text) {
+  if (i+2 >= strlen(text))
+    return '\0';
+
+  return text[i+2];
+}
+
 Token process_string(const char *text) {
   const int start = ++i;
   const int start_in_line = column;
@@ -40,6 +47,7 @@ Token process_string(const char *text) {
     lexer_error(unterminated_error_message);
 
   char ch = text[i];
+  printf("%c\n", ch);
 
   while (ch != text[start-1]) {
     if (lexer_is_at_end(text) || ch == '\n') 
@@ -50,14 +58,21 @@ Token process_string(const char *text) {
 
     if (ch == '\\') {
       if (
+        lexer_peek(text) != 'b' &&
+        lexer_peek(text) != 'f' &&
         lexer_peek(text) != 'n' &&
         lexer_peek(text) != 't' &&
         lexer_peek(text) != 'r' &&
+        lexer_peek(text) != '/' &&
         lexer_peek(text) != '\\' &&
         lexer_peek(text) != '\'' &&
         lexer_peek(text) != '\"'
-      )
+      ) { 
         lexer_error(invalid_escape_error_message);
+      } else {
+        i += 2;
+        column++;
+      } 
     }
 
     ch = text[i++];
@@ -67,7 +82,9 @@ Token process_string(const char *text) {
   char *value = (char*)malloc(sizeof(char)*(i-start));
   strncpy(value, text+start, i-start);
   value[i-start-1] = '\0';
-  i--;
+
+  if (i > start+1)
+    i--;
 
   return (Token) { STRING, line+1, start_in_line+1, value };
 }
@@ -103,16 +120,35 @@ Token process_digit(const char* text) {
   char ch = text[i];
   const char *error_message = "Error: Malformed number at line %d:%d";
   int dotAppeared = 0;
+  int expAppeared = 0;
 
-  if (text[start] == '0')
+  if (text[start] == '0' && isdigit(ch))
     lexer_error(error_message);
 
-  while (!lexer_is_at_end(text) && (isdigit(ch) || ch == '.')) {
+  while (!lexer_is_at_end(text)) {
     if (ch == '.') {
-      if (dotAppeared == 1)
+      if (expAppeared == 1 || dotAppeared == 1)
         lexer_error(error_message);
 
       dotAppeared = 1;
+    } else if (ch == 'e' || ch == 'E') {
+      if (expAppeared == 1)
+        lexer_error(error_message);
+
+      if (lexer_peek(text) == '+' || lexer_peek(text) == '-') {
+        i++;
+        if (isdigit(lexer_peek_twice(text))) {
+          expAppeared = 1;
+        } else {
+          lexer_error(error_message);
+        }
+      } else if (isdigit(lexer_peek(text))) {
+        expAppeared = 1; 
+      } else {
+        lexer_error(error_message);
+      }
+    } else if (!isdigit(ch)) {
+      break;
     }
 
     ch = text[++i];

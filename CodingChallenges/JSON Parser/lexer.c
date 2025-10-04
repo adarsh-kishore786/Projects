@@ -47,7 +47,6 @@ Token process_string(const char *text) {
     lexer_error(unterminated_error_message);
 
   char ch = text[i];
-  printf("%c\n", ch);
 
   while (ch != text[start-1]) {
     if (lexer_is_at_end(text) || ch == '\n') 

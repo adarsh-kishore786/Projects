@@ -1,4 +1,5 @@
-use crate::error;
+mod error;
+
 use error::Error;
 use std::fs;
 use std::process;

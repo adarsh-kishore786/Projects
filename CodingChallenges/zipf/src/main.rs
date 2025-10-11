@@ -1,11 +1,9 @@
+mod error;
+
+use error::Error;
 use std::env;
 use std::fs;
 use std::process;
-
-enum Error {
-    NoArgs,
-    ReadError
-}
 
 #[derive(Debug)]
 #[allow(dead_code)]

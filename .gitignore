@@ -26,8 +26,11 @@ target/
 # Ignore jar files
 *.jar
 
-# Ignote .sum files
+# Ignore .sum files
 *.sum
+
+# Ignore lock files
+*.lock
 
 # Ignore test directories
 test

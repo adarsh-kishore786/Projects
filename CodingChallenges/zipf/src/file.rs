@@ -3,10 +3,9 @@ use std::fs;
 use std::process;
 
 #[derive(Debug)]
-#[allow(dead_code)]
 pub struct File {
-    file_path: String,
-    contents: String
+    pub file_path: String,
+    pub contents: String
 }
 
 pub fn read_file(file_path: &str) -> File {

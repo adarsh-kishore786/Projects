@@ -3,6 +3,7 @@ mod file;
 mod logic;
 
 use error::Error;
+use logic::freq;
 use std::env;
 
 fn main() {
@@ -15,5 +16,6 @@ fn main() {
     }
 
     let file = file::read_file(&args[1]);
-    println!("{:?}", logic::freq::get_frequency(&file));
+    println!("Details for the file: {}", file.file_path);
+    println!("{:?}", freq::get_frequency(&file));
 }

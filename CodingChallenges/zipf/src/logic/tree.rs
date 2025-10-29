@@ -17,7 +17,7 @@ impl<T> HuffmanNode<T> {
 }
 
 impl<T: Display> HuffmanNode<T> {
-    fn print_inorder(&self) {
+    pub fn print_inorder(&self) {
         if let Some(left) = &self.left {
             left.print_inorder();
         }

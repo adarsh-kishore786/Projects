@@ -14,6 +14,16 @@ impl<T> HuffmanNode<T> {
             val: value 
         }
     }
+
+    pub fn add_left(mut self, node: HuffmanNode<T>) -> Self {
+        self.left = Some(Box::new(node));
+        return self;
+    }
+    
+    pub fn add_right(mut self, node: HuffmanNode<T>) -> Self {
+        self.right = Some(Box::new(node));
+        return self;
+    }
 }
 
 impl<T: Display> HuffmanNode<T> {

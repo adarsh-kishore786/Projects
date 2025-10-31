@@ -1,37 +1,46 @@
-use std::fmt::Display;
-
-pub struct HuffmanNode<T> {
-    pub left: Option<Box<HuffmanNode<T>>>,
-    pub right: Option<Box<HuffmanNode<T>>>,
-    pub val: T
+pub struct HuffmanNode {
+    left: Option<Box<HuffmanNode>>,
+    right: Option<Box<HuffmanNode>>,
+    freq: u32,
+    val: Option<char>
 }
 
-impl<T> HuffmanNode<T> {
-    pub fn new(value: T) -> Self {
+impl HuffmanNode {
+    pub fn new(freq: u32, ch: char) -> Self {
         HuffmanNode { 
             left: None,
             right: None,
-            val: value 
+            freq: freq,
+            val: Some(ch)
         }
     }
 
-    pub fn add_left(mut self, node: HuffmanNode<T>) -> Self {
+    pub fn add_left(mut self, node: HuffmanNode) -> Self {
+        self.freq += node.freq;
         self.left = Some(Box::new(node));
         return self;
     }
     
-    pub fn add_right(mut self, node: HuffmanNode<T>) -> Self {
+    pub fn add_right(mut self, node: HuffmanNode) -> Self {
+        self.freq += node.freq;
         self.right = Some(Box::new(node));
         return self;
     }
 }
 
-impl<T: Display> HuffmanNode<T> {
+impl HuffmanNode {
     pub fn print_inorder(&self) {
         if let Some(left) = &self.left {
             left.print_inorder();
         }
-        println!("{}", &self.val);
+        
+        print!("{}", self.freq);
+
+        if let Some(val) = self.val {
+            println!(": {}", val);
+        } else {
+            println!("");
+        }
         if let Some(right) = &self.right {
             right.print_inorder();
         }

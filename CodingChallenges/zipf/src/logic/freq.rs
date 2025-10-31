@@ -1,7 +1,7 @@
 use crate::file::File;
 use std::collections::HashMap;
 
-pub fn get_frequency(file: &File) -> HashMap<char, i32> {
+pub fn get_frequency(file: &File) -> HashMap<char, u32> {
     let mut frequency = HashMap::new();
 
     for char in file.contents.chars() {

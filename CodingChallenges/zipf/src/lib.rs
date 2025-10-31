@@ -20,14 +20,11 @@ pub fn compress(args: &Vec<String>) {
     println!("Compressing {}...", file.file_path);
 
     let freq_map = freq::get_frequency(&file);
-    let trees = construct_huffman_tree(&freq_map);
-
-    for tree in trees {
-        tree.print_inorder();
-    }
+    let tree = construct_huffman_tree(&freq_map);
+    tree.print_preorder();
 }
 
-fn construct_huffman_tree(freq_map: &HashMap<char, u32>) -> Vec<HuffmanNode> {
+fn construct_huffman_tree(freq_map: &HashMap<char, u32>) -> HuffmanNode {
     let mut nodes: Vec<HuffmanNode> = Vec::with_capacity(freq_map.len());
 
     for (&ch, &freq) in freq_map {
@@ -35,5 +32,13 @@ fn construct_huffman_tree(freq_map: &HashMap<char, u32>) -> Vec<HuffmanNode> {
         nodes.push(initial_tree);
     };
 
-    return nodes;
+    while nodes.len() > 1 {
+        nodes.sort_by(|a, b| { a.freq.cmp(&b.freq) });
+        let u = nodes.remove(0);
+        let v = nodes.remove(0);
+        let combined_node = HuffmanNode::combine(u, v);
+
+        nodes.push(combined_node);
+    }
+    return nodes.remove(0);
 }

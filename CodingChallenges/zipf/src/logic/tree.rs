@@ -1,7 +1,7 @@
 pub struct HuffmanNode {
     left: Option<Box<HuffmanNode>>,
     right: Option<Box<HuffmanNode>>,
-    freq: u32,
+    pub freq: u32,
     val: Option<char>
 }
 
@@ -15,25 +15,18 @@ impl HuffmanNode {
         }
     }
 
-    pub fn add_left(mut self, node: HuffmanNode) -> Self {
-        self.freq += node.freq;
-        self.left = Some(Box::new(node));
-        return self;
-    }
-    
-    pub fn add_right(mut self, node: HuffmanNode) -> Self {
-        self.freq += node.freq;
-        self.right = Some(Box::new(node));
-        return self;
+    pub fn combine(self, other: Self) -> Self {
+        return HuffmanNode {
+            freq: self.freq + other.freq,
+            left: Some(Box::new(self)),
+            right: Some(Box::new(other)),
+            val: None
+        };
     }
 }
 
 impl HuffmanNode {
-    pub fn print_inorder(&self) {
-        if let Some(left) = &self.left {
-            left.print_inorder();
-        }
-        
+    pub fn print_preorder(&self) {
         print!("{}", self.freq);
 
         if let Some(val) = self.val {
@@ -41,8 +34,13 @@ impl HuffmanNode {
         } else {
             println!("");
         }
+
+        if let Some(left) = &self.left {
+            left.print_preorder();
+        }
+        
         if let Some(right) = &self.right {
-            right.print_inorder();
+            right.print_preorder();
         }
     }
 }

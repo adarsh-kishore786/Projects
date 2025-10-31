@@ -14,7 +14,7 @@ pub fn read_file(file_path: &str) -> File {
     match contents {
         Ok(s) => return File {
             file_path: file_path.to_string(),
-            contents: s
+            contents: s.trim().to_string()
         },
         Err(e) => {
             println!("There was an error reading the file: {}", e);

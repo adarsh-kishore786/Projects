@@ -21,7 +21,11 @@ pub fn compress(args: &Vec<String>) {
 
     let freq_map = freq::get_frequency(&file);
     let tree = construct_huffman_tree(&freq_map);
-    tree.print_preorder();
+
+    let codes = tree.get_huffman_codes();
+    for (ch, code) in &codes {
+        println!("'{}': {}", ch, code);
+    }
 }
 
 fn construct_huffman_tree(freq_map: &HashMap<char, u32>) -> HuffmanNode {

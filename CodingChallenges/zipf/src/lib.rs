@@ -5,6 +5,7 @@ mod logic;
 use std::collections::HashMap;
 
 use error::Error;
+use file::File;
 use logic::freq;
 use logic::tree::HuffmanNode;
 
@@ -23,9 +24,9 @@ pub fn compress(args: &Vec<String>) {
     let tree = construct_huffman_tree(&freq_map);
 
     let codes = tree.get_huffman_codes();
-    for (ch, code) in &codes {
-        println!("'{}': {}", ch, code);
-    }
+    let output_file_path = format!("{}.zipf", &file.file_path);
+    write_to_file(&file, &output_file_path, &codes);
+    println!("File compressed and saved to {}", output_file_path);
 }
 
 fn construct_huffman_tree(freq_map: &HashMap<char, u32>) -> HuffmanNode {
@@ -45,4 +46,24 @@ fn construct_huffman_tree(freq_map: &HashMap<char, u32>) -> HuffmanNode {
         nodes.push(combined_node);
     }
     return nodes.remove(0);
+}
+
+fn write_to_file(input_file: &File, file_path: &str, huffman_codes: &HashMap<char, String>) {
+    let mut contents = String::new();
+    let file_contents = &input_file.contents;
+
+    // header
+    for (ch, code) in huffman_codes {
+        contents.push_str(&format!("{}{}", ch, code));
+    }
+    contents.push_str("==");
+
+    // body
+    for ch in file_contents.chars() {
+        if let Some(code) = huffman_codes.get(&ch) {
+            contents.push_str(code);
+        }
+    }
+
+    file::write_file(file_path, &contents);
 }

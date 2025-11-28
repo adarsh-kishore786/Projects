@@ -18,7 +18,7 @@ pub fn get_compressed_contents(file_contents: &str, huffman_codes: &HashMap<char
 
     let body_padding = body.len() % 8;
 
-    let mut contents = Vec::new();
+    let mut contents: Vec<u8> = Vec::new();
     contents.push(header.len() as u8);
     contents.push(body_padding as u8);
     contents.extend(header.as_bytes());

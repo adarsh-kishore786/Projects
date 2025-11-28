@@ -1,10 +1,9 @@
-use crate::file::File;
 use std::collections::HashMap;
 
-pub fn get_frequency(file: &File) -> HashMap<char, u32> {
+pub fn get_frequency(file_contents: &str) -> HashMap<char, u32> {
     let mut frequency = HashMap::new();
 
-    for char in file.contents.chars() {
+    for char in file_contents.chars() {
         *frequency.entry(char).or_insert(0) += 1;
     }
     return frequency;
@@ -16,11 +15,7 @@ mod tests {
 
     #[test]
     fn test_get_frequency() {
-        let test_file = File {
-            file_path: "test.txt".to_string(),
-            contents: "aaabbc".to_string()
-        };
-        let freq_map = get_frequency(&test_file);
+        let freq_map = get_frequency(&String::from("aaabbc"));
         assert_eq!(freq_map.get(&'a'), Some(&3));
         assert_eq!(freq_map.get(&'b'), Some(&2));
         assert_eq!(freq_map.get(&'c'), Some(&1));
@@ -28,18 +23,14 @@ mod tests {
 
     #[test]
     fn test_get_frequency_empty() {
-        let test_file = File {
-            file_path: "empty.txt".to_string(),
-            contents: "".to_string()
-        };
-        let freq_map = get_frequency(&test_file);
+        let freq_map = get_frequency(&String::from(""));
         assert!(freq_map.is_empty());
     }
 
     #[test]
     fn test_get_frequency_real_file() {
         let test_file = crate::file::read_file("test/sample.txt");
-        let freq_map = get_frequency(&test_file);
+        let freq_map = get_frequency(&String::from_utf8(test_file.contents).unwrap());
         assert_eq!(freq_map.get(&'c'), Some(&32));
         assert_eq!(freq_map.get(&'d'), Some(&42));
         assert_eq!(freq_map.get(&'e'), Some(&120));

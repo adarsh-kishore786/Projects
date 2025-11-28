@@ -5,7 +5,6 @@ mod logic;
 use std::collections::HashMap;
 
 use error::Error;
-use file::File;
 use logic::encoder;
 use logic::freq;
 use logic::tree::HuffmanNode;
@@ -18,15 +17,17 @@ pub fn compress(args: &Vec<String>) {
         );
     }
 
-    let file = file::read_file(&args[1]);
-    println!("Compressing {}...", file.file_path);
+    let input_file = file::read_file(&args[1]);
+    let output_file_path = format!("{}.zipf", &input_file.file_path);
+    let contents = String::from_utf8(input_file.contents).expect("Not supported for non-UTF8 files!").trim().to_string();
 
-    let freq_map = freq::get_frequency(&file);
+    println!("Compressing {}...", input_file.file_path);
+
+    let freq_map = freq::get_frequency(&contents);
     let tree = construct_huffman_tree(&freq_map);
-
     let codes = tree.get_huffman_codes();
-    let output_file_path = format!("{}.zipf", &file.file_path);
-    write_to_file(&file, &output_file_path, &codes);
+
+    write_to_file(&contents, &output_file_path, &codes);
     println!("File compressed and saved to {}", output_file_path);
 }
 
@@ -49,7 +50,7 @@ fn construct_huffman_tree(freq_map: &HashMap<char, u32>) -> HuffmanNode {
     return nodes.remove(0);
 }
 
-fn write_to_file(input_file: &File, file_path: &str, huffman_codes: &HashMap<char, String>) {
-    let contents = encoder::get_compressed_contents(&input_file.contents, huffman_codes);
+fn write_to_file(contents: &str, file_path: &str, huffman_codes: &HashMap<char, String>) {
+    let contents = encoder::get_compressed_contents(&contents, huffman_codes);
     file::write_file(file_path, &contents);
 }

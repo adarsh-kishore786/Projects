@@ -23,7 +23,7 @@ pub fn read_file(file_path: &str) -> File {
     }
 }
 
-pub fn write_file(file_path: &str, contents: &str) {
+pub fn write_file(file_path: &str, contents: &[u8]) {
     let result = fs::write(file_path, contents);
 
     match result {

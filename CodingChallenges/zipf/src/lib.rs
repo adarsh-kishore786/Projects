@@ -6,6 +6,7 @@ use std::collections::HashMap;
 
 use error::Error;
 use file::File;
+use logic::encoder;
 use logic::freq;
 use logic::tree::HuffmanNode;
 
@@ -49,21 +50,6 @@ fn construct_huffman_tree(freq_map: &HashMap<char, u32>) -> HuffmanNode {
 }
 
 fn write_to_file(input_file: &File, file_path: &str, huffman_codes: &HashMap<char, String>) {
-    let mut contents = String::new();
-    let file_contents = &input_file.contents;
-
-    // header
-    for (ch, code) in huffman_codes {
-        contents.push_str(&format!("{}{}", ch, code));
-    }
-    contents.push_str("==");
-
-    // body
-    for ch in file_contents.chars() {
-        if let Some(code) = huffman_codes.get(&ch) {
-            contents.push_str(code);
-        }
-    }
-
+    let contents = encoder::get_compressed_contents(&input_file.contents, huffman_codes);
     file::write_file(file_path, &contents);
 }

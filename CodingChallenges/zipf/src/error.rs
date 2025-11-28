@@ -1,6 +1,7 @@
 pub enum Error {
     NoArgs,
-    ReadError
+    ReadError,
+    WriteError,
 }
 
 pub fn exit(message: &str, error_code: Error) {

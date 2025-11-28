@@ -22,3 +22,15 @@ pub fn read_file(file_path: &str) -> File {
         }
     }
 }
+
+pub fn write_file(file_path: &str, contents: &str) {
+    let result = fs::write(file_path, contents);
+
+    match result {
+        Ok(_) => (),
+        Err(e) => {
+            println!("There was an error writing to the file: {}", e);
+            process::exit(Error::WriteError as i32);
+        }
+    }
+}

@@ -2,14 +2,16 @@ mod error;
 mod file;
 mod logic;
 
+use file::File;
 use std::collections::HashMap;
 
 use error::Error;
 use logic::encoder;
+use logic::decoder;
 use logic::freq;
 use logic::tree::HuffmanNode;
 
-pub fn compress(args: &Vec<String>) {
+pub fn process(args: &Vec<String>) {
     if args.len() < 2 {
         error::exit(
             "Usage: ./zipf path/to/file",
@@ -27,8 +29,11 @@ pub fn compress(args: &Vec<String>) {
     let tree = construct_huffman_tree(&freq_map);
     let codes = tree.get_huffman_codes();
 
-    write_to_file(&contents, &output_file_path, &codes);
+    compress(&contents, &output_file_path, &codes);
     println!("File compressed and saved to {}", output_file_path);
+
+    decompress(file::read_file(&output_file_path));
+    println!("Done!");
 }
 
 fn construct_huffman_tree(freq_map: &HashMap<char, u32>) -> HuffmanNode {
@@ -50,7 +55,15 @@ fn construct_huffman_tree(freq_map: &HashMap<char, u32>) -> HuffmanNode {
     return nodes.remove(0);
 }
 
-fn write_to_file(contents: &str, file_path: &str, huffman_codes: &HashMap<char, String>) {
+fn compress(contents: &str, file_path: &str, huffman_codes: &HashMap<char, String>) {
     let contents = encoder::get_compressed_contents(&contents, huffman_codes);
     file::write_file(file_path, &contents);
+}
+
+fn decompress(input_file: File) {
+    println!("Decompressing {}...", input_file.file_path);
+    let decoded_string = decoder::decode_contents(&input_file);
+    let output_file_path = input_file.file_path.replace(".zipf", ".unzipf");
+    file::write_file(&output_file_path, decoded_string.as_bytes());
+    println!("File decompressed and saved to {}", output_file_path);
 }

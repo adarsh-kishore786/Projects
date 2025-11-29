@@ -7,12 +7,8 @@ pub fn encode_contents(input_file: File) -> Vec<u8> {
     let contents = String::from_utf8(input_file.contents).expect("Not supported for non-UTF8 files!").to_string();
 
     let freq_map: BTreeMap<char, u32> = freq::get_frequency(&contents);
-    println!("Frequency Map: {:?}", freq_map);
     let tree: HuffmanNode = construct_huffman_tree(&freq_map);
-    print!("Huffman Tree: ");
-    tree.print_preorder();
     let codes: BTreeMap<char, String> = tree.get_huffman_codes();
-    println!("Huffman Codes: {:?}", codes);
 
     return get_compressed_contents(&contents, &codes);
 }
@@ -44,6 +40,7 @@ fn get_compressed_contents(file_contents: &str, huffman_codes: &BTreeMap<char, S
     for (ch, code) in huffman_codes {
         header.push_str(&format!("{}{}", ch, code));
     }
+    println!("Header length: {}", header.len());
 
     // body
     for ch in file_contents.chars() {
@@ -52,9 +49,10 @@ fn get_compressed_contents(file_contents: &str, huffman_codes: &BTreeMap<char, S
         }
     }
 
-    let body_padding = body.len() % 8;
+    let body_padding = 8 - body.len() % 8;
 
     let mut contents: Vec<u8> = Vec::new();
+    contents.push((header.len() >> 8) as u8);
     contents.push(header.len() as u8);
     contents.push(body_padding as u8);
     contents.extend(header.as_bytes());
@@ -96,7 +94,7 @@ mod tests {
         };
         let encoded_contents = encode_contents(input_file);
         assert_eq!(encoded_contents, vec![
-            13, 6, 
+            0, 13, 2, 
             b'a', b'0',
             b'b', b'1', b'0', b'0', 
             b'c', b'1', b'0', b'1',
@@ -136,7 +134,7 @@ mod tests {
         huffman_codes.insert('c', String::from("11"));
         let compressed_contents = get_compressed_contents(file_contents, &huffman_codes);
         assert_eq!(compressed_contents, vec![
-            8, 1,
+            0, 8, 7,
             b'a', b'0', b'b', b'1', b'0', b'c', b'1', b'1',
             0b00010101,
             0b10000000

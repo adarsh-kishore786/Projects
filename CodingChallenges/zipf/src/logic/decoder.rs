@@ -2,22 +2,21 @@ use crate::file::File;
 use std::collections::BTreeMap;
 
 pub fn decode_contents(file: &File) -> String {
-    let header_length = file.contents[0] as usize;
-    let body_padding = file.contents[1] as usize;
-    let header_bytes = &file.contents[2..2 + header_length];
-    let body_bytes = &file.contents[2 + header_length..];
+    let header_length = ((file.contents[0] as usize) << 8) | (file.contents[1] as usize);
+    let body_padding = file.contents[2] as usize;
+    let header_bytes = &file.contents[3..3 + header_length];
+    let body_bytes = &file.contents[3 + header_length..];
 
     let header_str = String::from_utf8(header_bytes.to_vec()).unwrap();
-    let huffman_codes: BTreeMap<char, u32> = parse_header(&header_str);
+    let huffman_codes: BTreeMap<char, u128> = parse_header(&header_str);
     let binary_string = decode_bytes_to_binary_string(body_bytes, body_padding);
     let decoded_string = reconstruct_original_string(&binary_string, &huffman_codes);
-    println!("{decoded_string}");
 
     return decoded_string;
 }
 
-fn parse_header(header: &str) -> BTreeMap<char, u32> {
-    let mut huffman_codes: BTreeMap<char, u32> = BTreeMap::new();
+fn parse_header(header: &str) -> BTreeMap<char, u128> {
+    let mut huffman_codes: BTreeMap<char, u128> = BTreeMap::new();
     let mut chars = header.chars().peekable();
 
     while let Some(ch) = chars.next() {
@@ -30,7 +29,7 @@ fn parse_header(header: &str) -> BTreeMap<char, u32> {
                 break;
             }
         }
-        huffman_codes.insert(ch, u32::from_str_radix(&code, 2).unwrap());
+        huffman_codes.insert(ch, u128::from_str_radix(&code, 2).unwrap());
     }
 
     return huffman_codes;
@@ -52,21 +51,21 @@ fn decode_bytes_to_binary_string(body_bytes: &[u8], body_padding: usize) -> Stri
     return binary_string;
 }
 
-fn reconstruct_original_string(binary_string: &str, huffman_codes: &BTreeMap<char, u32>) -> String {
-    let mut inverted_codes: BTreeMap<u32, char> = BTreeMap::new();
+fn reconstruct_original_string(binary_string: &str, huffman_codes: &BTreeMap<char, u128>) -> String {
+    let mut inverted_codes: BTreeMap<String, char> = BTreeMap::new();
     for (ch, code) in huffman_codes {
-        inverted_codes.insert(*code, *ch);
+        inverted_codes.insert(format!("{:b}", code), *ch);
     }
 
     let mut original_string = String::new();
-    let mut current_code: u32 = 0;
+    let mut current_code = String::new();
 
     for bit in binary_string.chars() {
-        current_code = (current_code << 1) | if bit == '1' { 1 } else { 0 };
+        current_code.push(bit);
 
         if let Some(&ch) = inverted_codes.get(&current_code) {
             original_string.push(ch);
-            current_code = 0;
+            current_code.clear();
         }
     }
 
@@ -81,7 +80,7 @@ mod tests {
     #[test]
     fn test_decode_contents() {
         let file = File {
-            contents: vec![8, 3, b'a', b'0', b'b', b'1', b'0', b'c', b'1', b'1', 0b10101100, 0b00000000],
+            contents: vec![0, 8, 3, b'a', b'0', b'b', b'1', b'0', b'c', b'1', b'1', 0b10101100, 0b00000000],
             file_path: String::from("test.zipf"),
         };
         let decoded = decode_contents(&file);
@@ -107,7 +106,7 @@ mod tests {
     #[test]
     fn test_reconstruct_original_string() {
         let binary_string = "1010110000000";
-        let mut huffman_codes: BTreeMap<char, u32> = BTreeMap::new();
+        let mut huffman_codes: BTreeMap<char, u128> = BTreeMap::new();
         huffman_codes.insert('a', 0);
         huffman_codes.insert('b', 2);
         huffman_codes.insert('c', 3);
@@ -118,7 +117,7 @@ mod tests {
     #[test]
     fn test_empty_file() {
         let file = File {
-            contents: vec![0, 0],
+            contents: vec![0, 0, 0],
             file_path: String::from("empty.zipf"),
         };
         let decoded = decode_contents(&file);

@@ -18,7 +18,8 @@ pub fn process(args: &Vec<String>) {
     let input_file = file::read_file(&args[1]);
 
     let compressed_file_path = compress(input_file);
-    let _ = decompress(file::read_file(&compressed_file_path));
+    let compressed_file = file::read_file(&compressed_file_path);
+    let _ = decompress(compressed_file);
 
     println!("Done!");
 }

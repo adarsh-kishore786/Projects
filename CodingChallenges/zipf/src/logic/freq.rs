@@ -1,7 +1,7 @@
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
-pub fn get_frequency(file_contents: &str) -> HashMap<char, u32> {
-    let mut frequency = HashMap::new();
+pub fn get_frequency(file_contents: &str) -> BTreeMap<char, u32> {
+    let mut frequency = BTreeMap::new();
 
     for char in file_contents.chars() {
         *frequency.entry(char).or_insert(0) += 1;

@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
 pub struct HuffmanNode {
     left: Option<Box<HuffmanNode>>,
@@ -52,13 +52,13 @@ impl HuffmanNode {
 
 // Get Huffman codes from the tree
 impl HuffmanNode {
-    pub fn get_huffman_codes(&self) -> HashMap<char, String> {
-        let mut codes = HashMap::new();
+    pub fn get_huffman_codes(&self) -> BTreeMap<char, String> {
+        let mut codes = BTreeMap::new();
         self.get_huffman_codes_helper(&mut codes, String::new());
         return codes;
     }
 
-    fn get_huffman_codes_helper(&self, codes: &mut HashMap<char, String>, current_code: String) {
+    fn get_huffman_codes_helper(&self, codes: &mut BTreeMap<char, String>, current_code: String) {
         if let Some(val) = self.val {
             codes.insert(val, current_code);
         } else {

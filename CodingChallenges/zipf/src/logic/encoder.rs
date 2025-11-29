@@ -1,19 +1,23 @@
 use crate::file::File;
 use crate::logic::freq;
 use crate::logic::tree::HuffmanNode;
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
 pub fn encode_contents(input_file: File) -> Vec<u8> {
     let contents = String::from_utf8(input_file.contents).expect("Not supported for non-UTF8 files!").to_string();
 
-    let freq_map: HashMap<char, u32> = freq::get_frequency(&contents);
+    let freq_map: BTreeMap<char, u32> = freq::get_frequency(&contents);
+    println!("Frequency Map: {:?}", freq_map);
     let tree: HuffmanNode = construct_huffman_tree(&freq_map);
-    let codes: HashMap<char, String> = tree.get_huffman_codes();
+    print!("Huffman Tree: ");
+    tree.print_preorder();
+    let codes: BTreeMap<char, String> = tree.get_huffman_codes();
+    println!("Huffman Codes: {:?}", codes);
 
     return get_compressed_contents(&contents, &codes);
 }
 
-fn construct_huffman_tree(freq_map: &HashMap<char, u32>) -> HuffmanNode {
+fn construct_huffman_tree(freq_map: &BTreeMap<char, u32>) -> HuffmanNode {
     let mut nodes: Vec<HuffmanNode> = Vec::with_capacity(freq_map.len());
 
     for (&ch, &freq) in freq_map {
@@ -32,7 +36,7 @@ fn construct_huffman_tree(freq_map: &HashMap<char, u32>) -> HuffmanNode {
     return nodes.remove(0);
 }
 
-fn get_compressed_contents(file_contents: &str, huffman_codes: &HashMap<char, String>) -> Vec<u8> {
+fn get_compressed_contents(file_contents: &str, huffman_codes: &BTreeMap<char, String>) -> Vec<u8> {
     let mut header = String::new();
     let mut body = String::new();
 
@@ -77,4 +81,65 @@ fn encode_binary_string_to_bytes(binary_string: &mut String) -> Vec<u8> {
         i += 8;
     }
     return bytes;
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::file::File;
+
+    #[test]
+    fn test_encode_contents() {
+        let input_file = File {
+            file_path: String::from("test.txt"),
+            contents: b"aabaccddddaa".to_vec(),
+        };
+        let encoded_contents = encode_contents(input_file);
+        assert_eq!(encoded_contents, vec![
+            13, 6, 
+            b'a', b'0',
+            b'b', b'1', b'0', b'0', 
+            b'c', b'1', b'0', b'1',
+            b'd', b'1', b'1',
+            0b00100010, 
+            0b11011111,
+            0b11110000
+        ]);
+    }
+
+    #[test]
+    fn test_encode_binary_string_to_bytes() {
+        let mut binary_string = String::from("11010010111100");
+        let bytes = encode_binary_string_to_bytes(&mut binary_string);
+        assert_eq!(bytes, vec![0b11010010, 0b11110000]);
+    }
+
+    #[test]
+    fn test_construct_huffman_tree() {
+        let mut freq_map = BTreeMap::new();
+        freq_map.insert('a', 5);
+        freq_map.insert('b', 9);
+        freq_map.insert('c', 12);
+        freq_map.insert('d', 13);
+        freq_map.insert('e', 16);
+        freq_map.insert('f', 45);
+        let tree = construct_huffman_tree(&freq_map);
+        assert_eq!(tree.freq, 100);
+    }
+
+    #[test]
+    fn test_get_compressed_contents() {
+        let file_contents = "aaabbc";
+        let mut huffman_codes = BTreeMap::new();
+        huffman_codes.insert('a', String::from("0"));
+        huffman_codes.insert('b', String::from("10"));
+        huffman_codes.insert('c', String::from("11"));
+        let compressed_contents = get_compressed_contents(file_contents, &huffman_codes);
+        assert_eq!(compressed_contents, vec![
+            8, 1,
+            b'a', b'0', b'b', b'1', b'0', b'c', b'1', b'1',
+            0b00010101,
+            0b10000000
+        ]);
+    }
 }

@@ -17,24 +17,28 @@ pub fn decode_contents(file: &File) -> String {
 
 fn parse_header(header: &str) -> BTreeMap<char, u128> {
     let mut huffman_codes: BTreeMap<char, u128> = BTreeMap::new();
-    let mut chars = header.chars().peekable();
-
-    while let Some(ch) = chars.next() {
-        let mut code = String::new();
-        while let Some(&next_ch) = chars.peek() {
-            if next_ch == '0' || next_ch == '1' {
-                code.push(next_ch);
-                chars.next();
-            } else {
-                break;
+    
+    for segment in header.split("=|") {
+        if segment.is_empty() {
+            continue;
+        }
+        
+        let mut chars = segment.chars();
+        
+        // First character is the symbol
+        if let Some(ch) = chars.next() {
+            // Remaining characters are the binary code
+            let code: String = chars.collect();
+            
+            if !code.is_empty() {
+                huffman_codes.insert(ch, u128::from_str_radix(&code, 2).unwrap()); // issue, this
+                // loses leading zeros
             }
         }
-        huffman_codes.insert(ch, u128::from_str_radix(&code, 2).unwrap());
     }
-
+    
     return huffman_codes;
 }
-
 fn decode_bytes_to_binary_string(body_bytes: &[u8], body_padding: usize) -> String {
     let mut binary_string = String::new();
 
@@ -80,20 +84,26 @@ mod tests {
     #[test]
     fn test_decode_contents() {
         let file = File {
-            contents: vec![0, 8, 3, b'a', b'0', b'b', b'1', b'0', b'c', b'1', b'1', 0b10101100, 0b00000000],
+            contents: vec![
+                0, 14, 3,
+                b'=', b'|', b'a', b'0', 
+                b'=', b'|', b'b', b'1', b'0', 
+                b'=', b'|', b'=', b'1', b'1',
+                0b10101100, 0b00000000
+            ],
             file_path: String::from("test.zipf"),
         };
         let decoded = decode_contents(&file);
-        assert_eq!(decoded, "bbcaaaaaaa");
+        assert_eq!(decoded, "bb=aaaaaaa");
     }
 
     #[test]
     fn test_parse_header() {
-        let header = "a0b10c11";
+        let header = "=|a0=|b10=|111";
         let huffman_codes = parse_header(header);
         assert_eq!(huffman_codes.get(&'a'), Some(&0));
         assert_eq!(huffman_codes.get(&'b'), Some(&2));
-        assert_eq!(huffman_codes.get(&'c'), Some(&3));
+        assert_eq!(huffman_codes.get(&'1'), Some(&3));
     }
 
     #[test]

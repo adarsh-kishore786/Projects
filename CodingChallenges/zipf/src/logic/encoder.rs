@@ -38,7 +38,7 @@ fn get_compressed_contents(file_contents: &str, huffman_codes: &BTreeMap<char, S
 
     // header
     for (ch, code) in huffman_codes {
-        header.push_str(&format!("{}{}", ch, code));
+        header.push_str(&format!("=|{}{}", ch, code));
     }
     println!("Header length: {}", header.len());
 
@@ -94,11 +94,11 @@ mod tests {
         };
         let encoded_contents = encode_contents(input_file);
         assert_eq!(encoded_contents, vec![
-            0, 13, 2, 
-            b'a', b'0',
-            b'b', b'1', b'0', b'0', 
-            b'c', b'1', b'0', b'1',
-            b'd', b'1', b'1',
+            0, 21, 2, 
+            b'=', b'|', b'a', b'0',
+            b'=', b'|', b'b', b'1', b'0', b'0', 
+            b'=', b'|', b'c', b'1', b'0', b'1',
+            b'=', b'|', b'd', b'1', b'1',
             0b00100010, 
             0b11011111,
             0b11110000
@@ -134,8 +134,10 @@ mod tests {
         huffman_codes.insert('c', String::from("11"));
         let compressed_contents = get_compressed_contents(file_contents, &huffman_codes);
         assert_eq!(compressed_contents, vec![
-            0, 8, 7,
-            b'a', b'0', b'b', b'1', b'0', b'c', b'1', b'1',
+            0, 14, 7,
+            b'=', b'|', b'a', b'0', 
+            b'=', b'|', b'b', b'1', b'0', 
+            b'=', b'|', b'c', b'1', b'1',
             0b00010101,
             0b10000000
         ]);

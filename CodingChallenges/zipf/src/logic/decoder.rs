@@ -8,15 +8,15 @@ pub fn decode_contents(file: &File) -> String {
     let body_bytes = &file.contents[3 + header_length..];
 
     let header_str = String::from_utf8(header_bytes.to_vec()).unwrap();
-    let huffman_codes: BTreeMap<char, u128> = parse_header(&header_str);
+    let huffman_codes: BTreeMap<char, String> = parse_header(&header_str);
     let binary_string = decode_bytes_to_binary_string(body_bytes, body_padding);
     let decoded_string = reconstruct_original_string(&binary_string, &huffman_codes);
 
     return decoded_string;
 }
 
-fn parse_header(header: &str) -> BTreeMap<char, u128> {
-    let mut huffman_codes: BTreeMap<char, u128> = BTreeMap::new();
+fn parse_header(header: &str) -> BTreeMap<char, String> {
+    let mut huffman_codes: BTreeMap<char, String> = BTreeMap::new();
     
     for segment in header.split("=|") {
         if segment.is_empty() {
@@ -30,10 +30,7 @@ fn parse_header(header: &str) -> BTreeMap<char, u128> {
             // Remaining characters are the binary code
             let code: String = chars.collect();
             
-            if !code.is_empty() {
-                huffman_codes.insert(ch, u128::from_str_radix(&code, 2).unwrap()); // issue, this
-                // loses leading zeros
-            }
+            huffman_codes.insert(ch, code);
         }
     }
     
@@ -55,10 +52,10 @@ fn decode_bytes_to_binary_string(body_bytes: &[u8], body_padding: usize) -> Stri
     return binary_string;
 }
 
-fn reconstruct_original_string(binary_string: &str, huffman_codes: &BTreeMap<char, u128>) -> String {
+fn reconstruct_original_string(binary_string: &str, huffman_codes: &BTreeMap<char, String>) -> String {
     let mut inverted_codes: BTreeMap<String, char> = BTreeMap::new();
     for (ch, code) in huffman_codes {
-        inverted_codes.insert(format!("{:b}", code), *ch);
+        inverted_codes.insert(code.to_string(), *ch);
     }
 
     let mut original_string = String::new();
@@ -101,9 +98,9 @@ mod tests {
     fn test_parse_header() {
         let header = "=|a0=|b10=|111";
         let huffman_codes = parse_header(header);
-        assert_eq!(huffman_codes.get(&'a'), Some(&0));
-        assert_eq!(huffman_codes.get(&'b'), Some(&2));
-        assert_eq!(huffman_codes.get(&'1'), Some(&3));
+        assert_eq!(huffman_codes.get(&'a'), Some(&String::from("0")));
+        assert_eq!(huffman_codes.get(&'b'), Some(&String::from("10")));
+        assert_eq!(huffman_codes.get(&'1'), Some(&String::from("11")));
     }
 
     #[test]
@@ -116,10 +113,10 @@ mod tests {
     #[test]
     fn test_reconstruct_original_string() {
         let binary_string = "1010110000000";
-        let mut huffman_codes: BTreeMap<char, u128> = BTreeMap::new();
-        huffman_codes.insert('a', 0);
-        huffman_codes.insert('b', 2);
-        huffman_codes.insert('c', 3);
+        let mut huffman_codes: BTreeMap<char, String> = BTreeMap::new();
+        huffman_codes.insert('a', "0".to_string());
+        huffman_codes.insert('b', "10".to_string());
+        huffman_codes.insert('c', "11".to_string());
         let original_string = reconstruct_original_string(binary_string, &huffman_codes);
         assert_eq!(original_string, "bbcaaaaaaa");
     }

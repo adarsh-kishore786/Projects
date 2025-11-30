@@ -40,7 +40,6 @@ fn get_compressed_contents(file_contents: &str, huffman_codes: &BTreeMap<char, S
     for (ch, code) in huffman_codes {
         header.push_str(&format!("=|{}{}", ch, code));
     }
-    println!("Header length: {}", header.len());
 
     // body
     for ch in file_contents.chars() {

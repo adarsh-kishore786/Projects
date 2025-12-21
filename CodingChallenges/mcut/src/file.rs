@@ -4,6 +4,7 @@ use std::process;
 
 #[derive(Debug)]
 pub struct File {
+    #[allow(dead_code)]
     pub file_path: String,
     pub contents: String
 }

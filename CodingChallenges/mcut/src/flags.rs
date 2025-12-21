@@ -1,5 +1,9 @@
+use crate::error;
+use crate::error::Error;
+
 #[derive(Debug)]
 pub enum Flag {
+    Empty,
     Field(u32),
     Delimeter(char),
 }
@@ -29,12 +33,24 @@ pub fn process(args: &Vec<String>) -> Vec<Flag> {
 
 fn process_field(arg: &str) -> Flag {
     let temp_val = arg.trim();
-    let val: u32 = temp_val.parse().expect(&format!("Cannot convert {} to integer!", temp_val));
-    return Flag::Field(val);
+    let res: Flag = match temp_val.parse() {
+        Ok(val) => Flag::Field(val),
+        Err(_) => {
+            error::exit(&format!("mcut: cannot convert {} to usize!", temp_val), Error::ConversionError);
+            return Flag::Empty;
+        }
+    };
+    return res;
 }
 
 fn process_delimeter(arg: &str) -> Flag {
     let temp_val = arg.trim();
-    let ch: char = temp_val.chars().nth(0).expect(&format!("Cannot convert {} to char!", temp_val));
-    return Flag::Delimeter(ch);
+    let res: Flag = match temp_val.chars().nth(0) {
+        Some(ch) => Flag::Delimeter(ch),
+        None => {
+            error::exit(&format!("Cannot convert {} to char!", temp_val), Error::ConversionError);
+            return Flag::Empty;
+        }
+    };
+    return res;
 }

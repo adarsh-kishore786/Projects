@@ -14,8 +14,6 @@ pub fn process(args: &Vec<String>) {
     let input_file = file::read_file(&args[1]);
     let option_flags = flags::process(args);
 
-    println!("{}", input_file.file_path);
-
     let mut field_index: std::option::Option<usize> = None;
 
     for flag in option_flags {

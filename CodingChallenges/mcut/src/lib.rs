@@ -1,8 +1,10 @@
 mod error;
 mod file;
 mod flags;
+mod logic;
 
 use error::Error;
+use logic::field;
 
 pub fn process(args: &Vec<String>) {
     if args.len() < 2 {
@@ -14,13 +16,16 @@ pub fn process(args: &Vec<String>) {
     let option_flags = flags::process(args);
 
     println!("{}", input_file.file_path);
-    println!("{}", input_file.contents);
+
+    let mut field_index: std::option::Option<usize> = None;
 
     for flag in option_flags {
         if let flags::Flag::Field(val) = flag {
-            println!("Field number: {val}");
+            field_index = Some(val as usize - 1);
         } else if let flags::Flag::Delimeter(chr) = flag {
             println!("Delimeter: {chr}");
         }
     }
+
+    field::process(&input_file, field_index);
 }

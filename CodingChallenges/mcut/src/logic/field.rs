@@ -6,7 +6,10 @@ pub fn process(input_file: &File, index: std::option::Option<usize>) {
 
     for line in lines {
         let delimeter = "\t";
-        let item = line.split(delimeter).collect::<Vec<&str>>()[actual_index];
+        let item = match line.split(delimeter).collect::<Vec<&str>>().get(actual_index) {
+            Some(i) => i,
+            None => ""
+        };
         println!("{item}");
     }
 }

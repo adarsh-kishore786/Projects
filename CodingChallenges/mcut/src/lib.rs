@@ -15,5 +15,12 @@ pub fn process(args: &Vec<String>) {
 
     println!("{}", input_file.file_path);
     println!("{}", input_file.contents);
-    println!("{:?}", option_flags);
+
+    for flag in option_flags {
+        if let flags::Flag::Field(val) = flag {
+            println!("Field number: {val}");
+        } else if let flags::Flag::Delimeter(chr) = flag {
+            println!("Delimeter: {chr}");
+        }
+    }
 }

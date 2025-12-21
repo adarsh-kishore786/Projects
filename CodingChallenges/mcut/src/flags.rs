@@ -1,6 +1,7 @@
 #[derive(Debug)]
 pub enum Flag {
-    Field(u32)
+    Field(u32),
+    Delimeter(char),
 }
 
 pub fn process(args: &Vec<String>) -> Vec<Flag> {
@@ -11,8 +12,11 @@ pub fn process(args: &Vec<String>) -> Vec<Flag> {
             continue;
         }
 
-        let res: Flag = match arg.chars().nth(1) {
-            Some('f') => process_field(&arg),
+        let temp_arg = arg[1..].trim();
+
+        let res: Flag = match temp_arg.chars().nth(0) {
+            Some('f') => process_field(&temp_arg[1..]),
+            Some('d') => process_delimeter(&temp_arg[1..]),
             Some(_c) => continue,
             None => continue
         };
@@ -24,6 +28,13 @@ pub fn process(args: &Vec<String>) -> Vec<Flag> {
 }
 
 fn process_field(arg: &str) -> Flag {
-    let val: u32 = arg[2..].parse().expect(&format!("Cannot convert {} to integer!", arg));
+    let temp_val = arg.trim();
+    let val: u32 = temp_val.parse().expect(&format!("Cannot convert {} to integer!", temp_val));
     return Flag::Field(val);
+}
+
+fn process_delimeter(arg: &str) -> Flag {
+    let temp_val = arg.trim();
+    let ch: char = temp_val.chars().nth(0).expect(&format!("Cannot convert {} to char!", temp_val));
+    return Flag::Delimeter(ch);
 }

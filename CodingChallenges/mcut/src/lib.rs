@@ -8,7 +8,6 @@ use logic::field;
 
 pub fn process(args: &Vec<String>) {
     if args.len() < 2 {
-        println!();
         error::exit("Usage: ./mcut <file_name>", Error::NoArgs);
     }
 
@@ -21,6 +20,9 @@ pub fn process(args: &Vec<String>) {
 
     for flag in option_flags {
         if let flags::Flag::Field(val) = flag {
+            if val == 0 {
+                error::exit("mcut: fields are numbered from 1", Error::FieldIndexZeroError);
+            }
             field_index = Some(val as usize - 1);
         } else if let flags::Flag::Delimeter(chr) = flag {
             println!("Delimeter: {chr}");

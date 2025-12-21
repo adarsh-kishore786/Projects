@@ -1,6 +1,7 @@
 pub enum Error {
     NoArgs,
     ReadError,
+    FieldIndexZeroError,
 }
 
 pub fn exit(message: &str, error_code: Error) {

@@ -5,6 +5,6 @@ pub enum Error {
 }
 
 pub fn exit(message: &str, error_code: Error) {
-    println!("{}", message);
+    eprintln!("{}", message);
     std::process::exit(error_code as i32);
 }

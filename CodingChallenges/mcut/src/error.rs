@@ -2,7 +2,8 @@ pub enum Error {
     NoFileError,
     ReadError,
     FieldIndexZeroError,
-    ConversionError
+    ConversionError,
+    NoFieldError,
 }
 
 pub fn exit(message: &str, error_code: Error) {

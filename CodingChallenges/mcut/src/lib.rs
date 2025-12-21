@@ -14,8 +14,6 @@ pub fn process(args: &str) {
     let mut input_file: Option<File> = None;
     let mut field_index: Option<usize> = None;
 
-    println!("{:?}", flag_args);
-
     for flag in flag_args {
         match flag {
             Flag::File(val) => {
@@ -32,7 +30,11 @@ pub fn process(args: &str) {
     }
 
     if let Some(file) = input_file {
-        field::process(&file, field_index);
+        if let Some(idx) = field_index {
+            field::process(&file, idx);
+        } else {
+            error::exit("mcut: no field index provided", Error::NoFieldError);
+        }
     } else {
         error::exit("mcut: no file provided", Error::NoFileError);
     }

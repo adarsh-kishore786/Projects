@@ -1,31 +1,39 @@
+mod arguments;
 mod error;
 mod file;
-mod flags;
+mod flag;
 mod logic;
 
 use error::Error;
+use file::File;
+use flag::Flag;
 use logic::field;
 
-pub fn process(args: &Vec<String>) {
-    if args.len() < 2 {
-        error::exit("Usage: ./mcut <file_name>", Error::NoArgs);
-    }
+pub fn process(args: &str) {
+    let flag_args = arguments::parse(args);
+    let mut input_file: Option<File> = None;
+    let mut field_index: Option<usize> = None;
 
-    let input_file = file::read_file(&args[1]);
-    let option_flags = flags::process(args);
+    println!("{:?}", flag_args);
 
-    let mut field_index: std::option::Option<usize> = None;
-
-    for flag in option_flags {
-        if let flags::Flag::Field(val) = flag {
-            if val == 0 {
-                error::exit("mcut: fields are numbered from 1", Error::FieldIndexZeroError);
-            }
-            field_index = Some(val as usize - 1);
-        } else if let flags::Flag::Delimeter(chr) = flag {
-            println!("Delimeter: {chr}");
+    for flag in flag_args {
+        match flag {
+            Flag::File(val) => {
+                input_file = Some(file::read_file(&val))
+            },
+            Flag::Field(val) => {
+                if val == 0 {
+                    error::exit("mcut: fields are numbered from 1", Error::FieldIndexZeroError);
+                }
+                field_index = Some(val as usize - 1);
+            },
+            _ => {}
         }
     }
 
-    field::process(&input_file, field_index);
+    if let Some(file) = input_file {
+        field::process(&file, field_index);
+    } else {
+        error::exit("mcut: no file provided", Error::NoFileError);
+    }
 }

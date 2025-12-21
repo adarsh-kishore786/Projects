@@ -1,5 +1,5 @@
 pub enum Error {
-    NoArgs,
+    NoFileError,
     ReadError,
     FieldIndexZeroError,
     ConversionError

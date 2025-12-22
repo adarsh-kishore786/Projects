@@ -21,7 +21,7 @@ pub fn parse(args: &str) -> Vec<Flag> {
 
         if state == State::Start {
             // Exclude the program name itself
-            while !get(args, index).is_ascii_whitespace() {
+            while index < args.len() && !get(args, index).is_whitespace() {
                 index += 1;
             }
 
@@ -44,7 +44,7 @@ pub fn parse(args: &str) -> Vec<Flag> {
 
         } else {
             let start = index;
-            while index < args.len() && get(args, index).is_alphanumeric() {
+            while index < args.len() && !get(args, index).is_whitespace() {
                 index += 1;
             }
 
@@ -87,12 +87,5 @@ fn process_field(arg: &str) -> Flag {
 
 fn process_delimeter(arg: &str) -> Flag {
     let temp_val = arg.trim();
-    let res: Flag = match temp_val.chars().nth(0) {
-        Some(ch) => Flag::Delimeter(ch),
-        None => {
-            error::exit(&format!("Cannot convert {} to char!", temp_val), Error::ConversionError);
-            return Flag::Empty;
-        }
-    };
-    return res;
+    return Flag::Delimeter(temp_val.to_string());
 }

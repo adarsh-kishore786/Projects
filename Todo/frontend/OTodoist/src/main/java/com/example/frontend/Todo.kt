@@ -1,4 +1,7 @@
 package com.example.frontend
 
-class Todo {
-}
+data class Todo (
+    val id: Int,
+    val task: String,
+    val completed: Boolean
+ )

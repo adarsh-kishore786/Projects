@@ -19,6 +19,6 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "frontend"
-include(":app")
+rootProject.name = "OTodoist"
+include(":OTodoist")
  

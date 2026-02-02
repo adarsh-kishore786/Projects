@@ -32,5 +32,8 @@ target/
 # Ignore lock files
 *.lock
 
+# Ignore csv files
+*.csv
+
 # Ignore test directories
 test

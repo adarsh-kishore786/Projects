@@ -1,28 +1,19 @@
-use axum::http::StatusCode;
 use axum::Json;
-use axum::response::{Response,IntoResponse};
+
 use axum_extra::{
     headers::{authorization::Bearer, Authorization},
     TypedHeader,
 };
 
-use jsonwebtoken::{encode, decode, DecodingKey, EncodingKey, Header, Validation};
+use jsonwebtoken::{
+    encode, decode, 
+    DecodingKey, EncodingKey,
+    Header, Validation
+};
+
 use serde::{Serialize,Deserialize};
 
-pub enum AuthError {
-    MissingToken,
-    InvalidToken,
-}
-
-impl IntoResponse for AuthError {
-    fn into_response(self) -> Response {
-        let (status, msg) = match self {
-            AuthError::MissingToken => (StatusCode::UNAUTHORIZED, "Missing credentials"),
-            AuthError::InvalidToken => (StatusCode::FORBIDDEN, "Invalid token"),
-        };
-        (status, msg).into_response()
-    }
-}
+use crate::logic::error::AuthError;
 
 const JWT_SECRET: &[u8] = b"secret_key_change_me_in_production";
 

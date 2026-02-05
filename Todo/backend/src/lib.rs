@@ -1,36 +1,20 @@
 mod logic;
 
-use logic::auth::AuthError;
-
-use logic::todo;
-use logic::todo::Todo;
-
 use axum::{
     extract::State,
     routing::{get, post},
     Json, Router,
 };
-use axum_extra::{
-    headers::{authorization::Bearer, Authorization},
-    TypedHeader,
-};
-use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation};
-use serde::{Deserialize, Serialize};
+use axum_extra::headers::{authorization::Bearer, Authorization};
+use axum_extra::TypedHeader;
+
+use logic::auth;
+use logic::auth::AuthError;
+
+use logic::todo;
+use logic::todo::Todo;
+
 use std::sync::{Arc, RwLock};
-
-const JWT_SECRET: &[u8] = b"secret_key_change_me_in_production";
-
-#[derive(Debug, Serialize, Deserialize)]
-struct Claims {
-    sub: String, // Subject (user identifier)
-    exp: usize,  // Expiration time
-}
-
-#[derive(Serialize)]
-struct AuthBody {
-    access_token: String,
-    token_type: String,
-}
 
 type SharedState = Arc<RwLock<Vec<Todo>>>;
 
@@ -45,7 +29,7 @@ pub async fn run() {
         .route("/todos", get(get_todos))
         .route("/todos", post(add_todo))
         // New login route to get a token
-        .route("/login", post(login))
+        .route("/login", post(auth::login))
         .with_state(shared_state);
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
@@ -53,28 +37,13 @@ pub async fn run() {
     axum::serve(listener, app).await.unwrap();
 }
 
-// Dummy Login: In a real app, you'd verify a username/password here
-async fn login() -> Json<AuthBody> {
-    let claims = Claims {
-        sub: "user_123".to_owned(),
-        exp: 2000000000, // Year 2033 (use actual timestamps in production!)
-    };
 
-    let token = encode(&Header::default(), &claims, &EncodingKey::from_secret(JWT_SECRET)).unwrap();
-
-    Json(AuthBody {
-        access_token: token,
-        token_type: "Bearer".to_string(),
-    })
-}
-
-// Protected route: We add the TypedHeader as an argument
 async fn get_todos(
     auth_header: Option<TypedHeader<Authorization<Bearer>>>,
     State(state): State<SharedState>,
 ) -> Result<Json<Vec<Todo>>, AuthError> {
     // Validate the token
-    validate_jwt(auth_header)?;
+    auth::validate_jwt(auth_header)?;
 
     let todos = state.read().unwrap();
     Ok(Json(todos.clone()))
@@ -86,7 +55,7 @@ async fn add_todo(
     Json(input): Json<Todo>,
 ) -> Result<Json<Todo>, AuthError> {
     // 1. Check JWT first
-    validate_jwt(auth_header)?;
+    auth::validate_jwt(auth_header)?;
 
     // 2. Update RAM (State)
     {
@@ -102,18 +71,4 @@ async fn add_todo(
     }
 
     Ok(Json(input))
-}
-
-// --- HELPER ---
-fn validate_jwt(header: Option<TypedHeader<Authorization<Bearer>>>) -> Result<Claims, AuthError> {
-    let TypedHeader(Authorization(bearer)) = header.ok_or(AuthError::MissingToken)?;
-    
-    let token_data = decode::<Claims>(
-        bearer.token(),
-        &DecodingKey::from_secret(JWT_SECRET),
-        &Validation::default(),
-    )
-    .map_err(|_| AuthError::InvalidToken)?;
-
-    Ok(token_data.claims)
 }

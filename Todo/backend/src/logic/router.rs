@@ -1,6 +1,8 @@
 use axum::{
     extract::State,
-    Json
+    Json,
+    routing::{get, post},
+    Router,
 };
 
 use axum_extra::{
@@ -18,7 +20,15 @@ use todo::Todo;
 
 type SharedState = Arc<RwLock<Vec<Todo>>>;
 
-pub async fn get_todos(
+pub fn get_router(state: SharedState) -> Router {
+    return Router::new()
+        .route("/login", post(auth::login))
+        .route("/todos", get(get_todos))
+        .route("/todos", post(add_todo))
+        .with_state(state);
+}
+
+async fn get_todos(
         auth_header: Option<TypedHeader<Authorization<Bearer>>>,
         State(state): State<SharedState>,
     ) -> Result<Json<Vec<Todo>>, AuthError> {
@@ -30,7 +40,7 @@ pub async fn get_todos(
     Ok(Json(todos.clone()))
 }
 
-pub async fn add_todo(
+async fn add_todo(
         auth_header: Option<TypedHeader<Authorization<Bearer>>>,
         State(state): State<SharedState>,
         Json(input): Json<Todo>,

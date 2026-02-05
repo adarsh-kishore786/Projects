@@ -2,14 +2,9 @@ use axum::{
     Json, Router, extract::State, routing::{get, post}
 };
 
-use axum_extra::{
-    headers::{authorization::Bearer, Authorization},
-    TypedHeader
-};
-
 use std::sync::{Arc, RwLock};
 
-use crate::logic::auth;
+use crate::logic::auth::{self, Claims};
 use crate::logic::todo;
 use crate::logic::error::{AppError, ServerError};
 
@@ -30,12 +25,9 @@ pub fn get_router(state: SharedState) -> Router {
 }
 
 async fn get_todos(
-        auth_header: Option<TypedHeader<Authorization<Bearer>>>,
+        _claims: Claims,
         State(state): State<SharedState>,
     ) -> Result<Json<Vec<Todo>>, AppError> {
-
-    // Validate the token
-    auth::validate_jwt(auth_header)?;
 
     let todos = match state.read() {
         Ok(t) => t,
@@ -49,21 +41,18 @@ async fn get_todos(
 }
 
 async fn add_todo(
-        auth_header: Option<TypedHeader<Authorization<Bearer>>>,
+        _claims: Claims,
         State(state): State<SharedState>,
         Json(input): Json<Todo>,
     ) -> Result<Json<Todo>, AppError> {
 
-    // 1. Check JWT first
-    auth::validate_jwt(auth_header)?;
-
-    // 2. Update RAM (State)
+    // 1. Update RAM (State)
     {
         let mut todos = state.write().unwrap();
         todos.push(input.clone());
     } // Lock is dropped here
 
-    // 3. Update Disk (CSV)
+    // 2. Update Disk (CSV)
     // We use 'if let Err' to catch errors without breaking the function return type
     if let Err(e) = todo::save_to_csv(&input) {
         eprintln!("Error: Failed to save to CSV: {}", e);

@@ -1,14 +1,14 @@
 mod logic;
 
+use logic::auth::AuthError;
+
 use logic::todo;
 use logic::todo::Todo;
 
 use axum::{
     extract::State,
-    http::StatusCode,
     routing::{get, post},
     Json, Router,
-    response::{IntoResponse, Response},
 };
 use axum_extra::{
     headers::{authorization::Bearer, Authorization},
@@ -18,7 +18,6 @@ use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation}
 use serde::{Deserialize, Serialize};
 use std::sync::{Arc, RwLock};
 
-// --- AUTH UTILS ---
 const JWT_SECRET: &[u8] = b"secret_key_change_me_in_production";
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -32,24 +31,6 @@ struct AuthBody {
     access_token: String,
     token_type: String,
 }
-
-// Custom error for auth failures
-enum AuthError {
-    MissingToken,
-    InvalidToken,
-}
-
-impl IntoResponse for AuthError {
-    fn into_response(self) -> Response {
-        let (status, msg) = match self {
-            AuthError::MissingToken => (StatusCode::UNAUTHORIZED, "Missing credentials"),
-            AuthError::InvalidToken => (StatusCode::FORBIDDEN, "Invalid token"),
-        };
-        (status, msg).into_response()
-    }
-}
-
-// --- TODO LOGIC (Existing) ---
 
 type SharedState = Arc<RwLock<Vec<Todo>>>;
 

@@ -18,7 +18,11 @@ use crate::logic::todo;
 use auth::AuthError;
 use todo::Todo;
 
-type SharedState = Arc<RwLock<Vec<Todo>>>;
+pub type SharedState = Arc<RwLock<Vec<Todo>>>;
+
+pub fn initialize_state(todos: Vec<Todo>) -> SharedState {
+    Arc::new(RwLock::new(todos))
+}
 
 pub fn get_router(state: SharedState) -> Router {
     return Router::new()

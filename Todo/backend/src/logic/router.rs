@@ -1,5 +1,5 @@
 use axum::{
-    Json, Router, extract::State, routing::{get, post}
+    Json, Router, extract::{State, Path}, routing::{get, post}
 };
 
 use std::sync::{Arc, RwLock};
@@ -21,6 +21,7 @@ pub fn get_router(state: SharedState) -> Router {
         .route("/login", post(auth::login))
         .route("/todos", get(get_todos))
         .route("/todos", post(add_todo))
+        .route("/todos/:id", get(get_todo))
         .with_state(state);
 }
 
@@ -38,6 +39,30 @@ async fn get_todos(
     };
 
     Ok(Json(todos.clone()))
+}
+
+async fn get_todo(
+        _claims: Claims,
+        Path(id): Path<u32>,
+        State(state): State<SharedState>,
+    ) -> Result<Json<Todo>, AppError> {
+
+    let todos = match state.read() {
+        Ok(t) => t,
+        Err(err) => {
+            eprintln!("Error: Failed to fetch the todos from server: {}", err);
+            return Err(ServerError::Internal.into());
+        }
+    };
+
+    for todo in todos.iter() {
+        if todo.id == id {
+            return Ok(Json(todo.clone()));
+        }
+    }
+
+    eprintln!("Error: No todo exists with id {}", id);
+    return Err(ServerError::NotFound.into());
 }
 
 async fn add_todo(

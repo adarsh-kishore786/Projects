@@ -5,9 +5,9 @@ use std::io::ErrorKind;
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Todo {
-    id: u32,
-    task: String,
-    completed: bool,
+    pub id: u32,
+    pub task: String,
+    pub completed: bool,
 }
 
 pub fn load_from_csv() -> Result<Vec<Todo>, Box<dyn std::error::Error>> {

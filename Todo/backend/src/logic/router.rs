@@ -79,11 +79,7 @@ async fn add_todo(
     } // Lock is dropped here
 
     // 2. Update Disk (CSV)
-    // We use 'if let Err' to catch errors without breaking the function return type
-    if let Err(e) = todo::save_to_csv(&input) {
-        eprintln!("Error: Failed to save to CSV: {}", e);
-        return Err(ServerError::Internal.into());
-    }
+    save_or_error(&input)?;
 
     Ok(Json(input))
 }
@@ -105,10 +101,19 @@ async fn complete_todo(
     for todo in todos.iter_mut() {
         if todo.id == id {
             todo.completed = true;
+            save_or_error(todo)?;
             return Ok(Json(todo.clone()));
         }
     }
 
     eprint!("Error: Could not find todo with id: {}", id);
     return Err(ServerError::NotFound.into());
+}
+
+fn save_or_error(todo: &Todo) -> Result<(), ServerError> {
+    if let Err(e) = todo::save_to_csv(todo) {
+        eprintln!("Error: Failed to save to CSV: {}", e);
+        return Err(ServerError::Internal.into());
+    }
+    Ok(())
 }

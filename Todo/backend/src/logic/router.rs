@@ -31,10 +31,7 @@ async fn get_todos(
         State(state): State<SharedState>,
     ) -> Result<Json<Vec<Todo>>, AppError> {
 
-    let todos = state.read().map_err(|err| {
-        eprintln!("Error: Failed to fetch the todos from server: {}", err);
-        ServerError::Internal
-    })?;
+    let todos = state.read().map_err(lock_err)?;
 
     Ok(Json(todos.clone()))
 }
@@ -45,10 +42,7 @@ async fn get_todo(
         State(state): State<SharedState>,
     ) -> Result<Json<Todo>, AppError> {
 
-    let todos = state.read().map_err(|err| {
-        eprintln!("Error: Failed to fetch the todos from server: {}", err);
-        ServerError::Internal
-    })?;
+    let todos = state.read().map_err(lock_err)?;
 
     for todo in todos.iter() {
         if todo.id == id {
@@ -83,10 +77,7 @@ async fn complete_todo(
         Path(id): Path<u32>,
     ) -> Result<Json<Todo>, AppError> {
 
-    let mut todos = state.write().map_err(|err| {
-        eprintln!("Error: Could not get todos from server: {}", err);
-        ServerError::Internal
-    })?;
+    let mut todos = state.write().map_err(lock_err)?;
 
     for todo in todos.iter_mut() {
         if todo.id == id {
@@ -110,4 +101,10 @@ fn save_or_error(todo: &Todo) -> Result<(), ServerError> {
 fn not_found_err(id: u32) -> ServerError {
     eprintln!("Error: Could not find todo with id: {}", id);
     return ServerError::NotFound;
+}
+
+fn lock_err<E>(err: E) -> ServerError
+where E: std::fmt::Display {
+    eprintln!("Error: Could not get todos from server: {}", err);
+    ServerError::Internal
 }

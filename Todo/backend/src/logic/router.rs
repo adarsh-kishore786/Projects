@@ -44,13 +44,11 @@ async fn get_todo(
 
     let todos = state.read().map_err(lock_err)?;
 
-    for todo in todos.iter() {
-        if todo.id == id {
-            return Ok(Json(todo.clone()));
-        }
-    }
+    let todo = todos.iter()
+        .find(|t| t.id == id)
+        .ok_or_else(|| not_found_err(id))?;
 
-    return Err(not_found_err(id).into());
+    Ok(Json(todo.clone()))
 }
 
 async fn add_todo(
@@ -79,15 +77,20 @@ async fn complete_todo(
 
     let mut todos = state.write().map_err(lock_err)?;
 
-    for todo in todos.iter_mut() {
-        if todo.id == id {
-            todo.completed = true;
-            save_or_error(todo)?;
-            return Ok(Json(todo.clone()));
-        }
+    let todo = todos.iter_mut()
+        .find(|t| t.id == id)
+        .ok_or_else(|| not_found_err(id))?;
+
+    todo.completed = true;
+    let updated_todo = todo.clone();
+
+    // Must rewrite entire file because a record changed
+    if let Err(e) = todo::save_all_to_csv(&todos) {
+        eprintln!("Error: Failed to rewrite CSV: {}", e);
+        return Err(ServerError::Internal.into());
     }
 
-    return Err(not_found_err(id).into());
+    Ok(Json(updated_todo))
 }
 
 fn save_or_error(todo: &Todo) -> Result<(), ServerError> {

@@ -37,3 +37,6 @@ target/
 
 # Ignore test directories
 test
+
+# Ignore db files
+*.db

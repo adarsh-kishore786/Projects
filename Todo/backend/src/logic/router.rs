@@ -31,13 +31,10 @@ async fn get_todos(
         State(state): State<SharedState>,
     ) -> Result<Json<Vec<Todo>>, AppError> {
 
-    let todos = match state.read() {
-        Ok(t) => t,
-        Err(err) => {
-            eprintln!("Error: Failed to fetch the todos from server: {}", err);
-            return Err(ServerError::Internal.into());
-        }
-    };
+    let todos = state.read().map_err(|err| {
+        eprintln!("Error: Failed to fetch the todos from server: {}", err);
+        ServerError::Internal
+    })?;
 
     Ok(Json(todos.clone()))
 }
@@ -48,13 +45,10 @@ async fn get_todo(
         State(state): State<SharedState>,
     ) -> Result<Json<Todo>, AppError> {
 
-    let todos = match state.read() {
-        Ok(t) => t,
-        Err(err) => {
-            eprintln!("Error: Failed to fetch the todos from server: {}", err);
-            return Err(ServerError::Internal.into());
-        }
-    };
+    let todos = state.read().map_err(|err| {
+        eprintln!("Error: Failed to fetch the todos from server: {}", err);
+        ServerError::Internal
+    })?;
 
     for todo in todos.iter() {
         if todo.id == id {
@@ -62,8 +56,7 @@ async fn get_todo(
         }
     }
 
-    eprintln!("Error: No todo exists with id {}", id);
-    return Err(ServerError::NotFound.into());
+    return Err(not_found_err(id).into());
 }
 
 async fn add_todo(
@@ -74,7 +67,7 @@ async fn add_todo(
 
     // 1. Update RAM (State)
     {
-        let mut todos = state.write().unwrap();
+        let mut todos = state.write().expect("Error: Could not write to file!");
         todos.push(input.clone());
     } // Lock is dropped here
 
@@ -90,13 +83,10 @@ async fn complete_todo(
         Path(id): Path<u32>,
     ) -> Result<Json<Todo>, AppError> {
 
-    let mut todos = match state.write() {
-        Ok(t) => t,
-        Err(err) => {
-            eprintln!("Error: Failed to fetch the todos from server: {}", err);
-            return Err(ServerError::Internal.into());
-        }
-    };
+    let mut todos = state.write().map_err(|err| {
+        eprintln!("Error: Could not get todos from server: {}", err);
+        ServerError::Internal
+    })?;
 
     for todo in todos.iter_mut() {
         if todo.id == id {
@@ -106,8 +96,7 @@ async fn complete_todo(
         }
     }
 
-    eprint!("Error: Could not find todo with id: {}", id);
-    return Err(ServerError::NotFound.into());
+    return Err(not_found_err(id).into());
 }
 
 fn save_or_error(todo: &Todo) -> Result<(), ServerError> {
@@ -116,4 +105,9 @@ fn save_or_error(todo: &Todo) -> Result<(), ServerError> {
         return Err(ServerError::Internal.into());
     }
     Ok(())
+}
+
+fn not_found_err(id: u32) -> ServerError {
+    eprintln!("Error: Could not find todo with id: {}", id);
+    return ServerError::NotFound;
 }

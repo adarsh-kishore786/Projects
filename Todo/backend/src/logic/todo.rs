@@ -132,6 +132,16 @@ pub async fn list_projects(pool: &SqlitePool, user_id: i64) -> Result<Vec<Projec
         .await
 }
 
+pub async fn project_exists(pool: &SqlitePool, project_id: i64, user_id: i64) -> Result<bool, sqlx::Error> {
+    let result = sqlx::query("SELECT 1 FROM projects WHERE id = ? AND user_id = ?")
+        .bind(project_id)
+        .bind(user_id)
+        .fetch_optional(pool)
+        .await?;
+    
+    Ok(result.is_some())
+}
+
 // --- Tasks ---
 
 pub async fn create_task(
@@ -171,12 +181,13 @@ pub async fn list_tasks(pool: &SqlitePool, project_id: i64) -> Result<Vec<Task>,
         .await
 }
 
-pub async fn complete_task(pool: &SqlitePool, id: i64) -> Result<(), sqlx::Error> {
-    sqlx::query("UPDATE tasks SET completed = 1 WHERE id = ?")
+pub async fn complete_task(pool: &SqlitePool, id: i64) -> Result<bool, sqlx::Error> {
+    let result = sqlx::query("UPDATE tasks SET completed = 1 WHERE id = ?")
         .bind(id)
         .execute(pool)
         .await?;
-    Ok(())
+    
+    Ok(result.rows_affected() > 0)
 }
 
 // --- Comments ---

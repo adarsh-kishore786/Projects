@@ -63,11 +63,17 @@ struct CreateTask {
 }
 
 async fn create_task(
-    _claims: Claims,
+    claims: Claims,
     State(pool): State<SharedState>,
     Path(project_id): Path<i64>,
     Json(input): Json<CreateTask>,
 ) -> Result<Json<todo::Task>, AppError> {
+    let user_id = claims.sub.parse::<i64>().map_err(|_| ServerError::Internal)?;
+    
+    if !todo::project_exists(&pool, project_id, user_id).await.map_err(db_err)? {
+        return Err(ServerError::NotFound.into());
+    }
+
     let task = todo::create_task(
         &pool, 
         project_id, 
@@ -80,10 +86,16 @@ async fn create_task(
 }
 
 async fn get_tasks(
-    _claims: Claims,
+    claims: Claims,
     State(pool): State<SharedState>,
     Path(project_id): Path<i64>,
 ) -> Result<Json<Vec<todo::Task>>, AppError> {
+    let user_id = claims.sub.parse::<i64>().map_err(|_| ServerError::Internal)?;
+    
+    if !todo::project_exists(&pool, project_id, user_id).await.map_err(db_err)? {
+        return Err(ServerError::NotFound.into());
+    }
+
     let tasks = todo::list_tasks(&pool, project_id).await.map_err(db_err)?;
     Ok(Json(tasks))
 }
@@ -93,7 +105,12 @@ async fn complete_task(
     State(pool): State<SharedState>,
     Path(id): Path<i64>,
 ) -> Result<(), AppError> {
-    todo::complete_task(&pool, id).await.map_err(db_err)?;
+    let success = todo::complete_task(&pool, id).await.map_err(db_err)?;
+    
+    if !success {
+        return Err(ServerError::NotFound.into());
+    }
+    
     Ok(())
 }
 
@@ -111,7 +128,18 @@ async fn add_comment(
     Json(input): Json<CreateComment>,
 ) -> Result<Json<todo::Comment>, AppError> {
     let user_id = claims.sub.parse::<i64>().map_err(|_| ServerError::Internal)?;
-    let comment = todo::add_comment(&pool, id, user_id, &input.content).await.map_err(db_err)?;
+    
+    // add_comment will fail with DB error if task id is invalid due to FK
+    let comment = todo::add_comment(&pool, id, user_id, &input.content).await.map_err(|e| {
+        // If it's a foreign key error, return 404
+        if let Some(db_err) = e.as_database_error() {
+            if db_err.is_foreign_key_violation() {
+                return ServerError::NotFound;
+            }
+        }
+        db_err(e)
+    })?;
+    
     Ok(Json(comment))
 }
 

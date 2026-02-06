@@ -22,6 +22,7 @@ pub fn get_router(state: SharedState) -> Router {
         .route("/todos", get(get_todos))
         .route("/todos", post(add_todo))
         .route("/todos/:id", get(get_todo))
+        .route("/todos/:id/complete", post(complete_todo))
         .with_state(state);
 }
 
@@ -85,4 +86,29 @@ async fn add_todo(
     }
 
     Ok(Json(input))
+}
+
+async fn complete_todo(
+        _claims: Claims,
+        State(state): State<SharedState>,
+        Path(id): Path<u32>,
+    ) -> Result<Json<Todo>, AppError> {
+
+    let mut todos = match state.write() {
+        Ok(t) => t,
+        Err(err) => {
+            eprintln!("Error: Failed to fetch the todos from server: {}", err);
+            return Err(ServerError::Internal.into());
+        }
+    };
+
+    for todo in todos.iter_mut() {
+        if todo.id == id {
+            todo.completed = true;
+            return Ok(Json(todo.clone()));
+        }
+    }
+
+    eprint!("Error: Could not find todo with id: {}", id);
+    return Err(ServerError::NotFound.into());
 }

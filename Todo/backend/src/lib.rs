@@ -2,20 +2,23 @@ mod logic;
 
 use logic::todo;
 use logic::router;
+use sqlx::sqlite::SqlitePoolOptions;
 
 pub async fn run() {
-    let initial_todos = get_todos();
-    let shared_state = router::initialize_state(initial_todos);
-    let app = router::get_router(shared_state);
+    // 1. Initialize Database
+    let database_url = "sqlite:todos.db?mode=rwc";
+    let pool = SqlitePoolOptions::new()
+        .max_connections(5)
+        .connect(database_url)
+        .await
+        .expect("Failed to connect to SQLite");
+
+    todo::init_db(&pool).await.expect("Failed to initialize database table");
+
+    // 2. Start Router
+    let app = router::get_router(pool);
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
 
-    println!("Todo API running with JWT on http://localhost:3000");
+    println!("Todo API running with SQLx (SQLite) on http://localhost:3000");
     axum::serve(listener, app).await.unwrap();
-}
-
-fn get_todos() -> Vec<todo::Todo> {
-    return todo::load_from_csv().unwrap_or_else(|err| {
-        eprintln!("Warning: Could not load CSV ({}). Starting with empty list.", err);
-        return Vec::new();
-    });
 }

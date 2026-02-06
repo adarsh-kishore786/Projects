@@ -1,64 +1,60 @@
-use csv::{ReaderBuilder, WriterBuilder};
 use serde::{Deserialize, Serialize};
-use std::fs::OpenOptions;
-use std::io::ErrorKind;
+use sqlx::{sqlite::SqlitePool, FromRow};
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug, FromRow)]
 pub struct Todo {
     pub id: u32,
     pub task: String,
     pub completed: bool,
 }
 
-pub fn load_from_csv() -> Result<Vec<Todo>, Box<dyn std::error::Error>> {
-    // Open the file. If it doesn't exist, just return an empty list 
-    // instead of an error, because a fresh app won't have a file yet.
-    let file = match OpenOptions::new().read(true).open("todos.csv") {
-        Ok(file) => file,
-        Err(e) if e.kind() == ErrorKind::NotFound => return Ok(Vec::new()),
-        Err(e) => return Err(e.into()),
-    };
-
-    let mut rdr = ReaderBuilder::new()
-        .has_headers(false) // Set to true if your CSV has "id,task,completed" as the first line
-        .from_reader(file);
-
-    let list: Vec<Todo> = rdr.deserialize().collect::<Result<_, _>>()?;
-    
-    println!("Successfully loaded {} todos from disk.", list.len());
-    Ok(list)
-}
-
-pub fn save_to_csv(todo: &Todo) -> Result<(), Box<dyn std::error::Error>> {
-    let file = OpenOptions::new()
-        .write(true)
-        .append(true)
-        .create(true) // Create the file if it doesn't exist
-        .open("todos.csv")?;
-    
-    let mut wtr = WriterBuilder::new()
-        .has_headers(false)
-        .from_writer(file);
-        
-    wtr.serialize(todo)?;
-    wtr.flush()?; // Ensure data is physically written to disk
+pub async fn init_db(pool: &SqlitePool) -> Result<(), sqlx::Error> {
+    sqlx::query(
+        "CREATE TABLE IF NOT EXISTS todos (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            task TEXT NOT NULL,
+            completed BOOLEAN NOT NULL DEFAULT 0
+        )"
+    )
+    .execute(pool)
+    .await?;
     Ok(())
 }
 
-pub fn save_all_to_csv(todos: &[Todo]) -> Result<(), Box<dyn std::error::Error>> {
-    let file = OpenOptions::new()
-        .write(true)
-        .create(true)
-        .truncate(true)
-        .open("todos.csv")?;
+pub async fn load_all(pool: &SqlitePool) -> Result<Vec<Todo>, sqlx::Error> {
+    let todos = sqlx::query_as::<_, Todo>("SELECT id, task, completed FROM todos")
+        .fetch_all(pool)
+        .await?;
+    Ok(todos)
+}
 
-    let mut wtr = WriterBuilder::new()
-        .has_headers(false)
-        .from_writer(file);
+pub async fn find_by_id(pool: &SqlitePool, id: u32) -> Result<Option<Todo>, sqlx::Error> {
+    let todo = sqlx::query_as::<_, Todo>("SELECT id, task, completed FROM todos WHERE id = ?")
+        .bind(id)
+        .fetch_optional(pool)
+        .await?;
+    Ok(todo)
+}
 
-    for todo in todos {
-        wtr.serialize(todo)?;
-    }
-    wtr.flush()?;
-    Ok(())
+pub async fn create(pool: &SqlitePool, task: &str) -> Result<Todo, sqlx::Error> {
+    let id = sqlx::query("INSERT INTO todos (task, completed) VALUES (?, 0)")
+        .bind(task)
+        .execute(pool)
+        .await?
+        .last_insert_rowid();
+
+    Ok(Todo {
+        id: id as u32,
+        task: task.to_string(),
+        completed: false,
+    })
+}
+
+pub async fn complete(pool: &SqlitePool, id: u32) -> Result<Option<Todo>, sqlx::Error> {
+    sqlx::query("UPDATE todos SET completed = 1 WHERE id = ?")
+        .bind(id)
+        .execute(pool)
+        .await?;
+
+    find_by_id(pool, id).await
 }

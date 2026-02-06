@@ -1,8 +1,7 @@
 use axum::{
     Json, Router, extract::{State, Path}, routing::{get, post}
 };
-
-use std::sync::{Arc, RwLock};
+use sqlx::SqlitePool;
 
 use crate::logic::auth::{self, Claims};
 use crate::logic::todo;
@@ -10,104 +9,72 @@ use crate::logic::error::{AppError, ServerError};
 
 use todo::Todo;
 
-pub type SharedState = Arc<RwLock<Vec<Todo>>>;
-
-pub fn initialize_state(todos: Vec<Todo>) -> SharedState {
-    Arc::new(RwLock::new(todos))
-}
+pub type SharedState = SqlitePool;
 
 pub fn get_router(state: SharedState) -> Router {
-    return Router::new()
+    Router::new()
         .route("/login", post(auth::login))
         .route("/todos", get(get_todos))
         .route("/todos", post(add_todo))
         .route("/todos/:id", get(get_todo))
         .route("/todos/:id/complete", post(complete_todo))
-        .with_state(state);
+        .with_state(state)
 }
 
 async fn get_todos(
         _claims: Claims,
-        State(state): State<SharedState>,
+        State(pool): State<SharedState>,
     ) -> Result<Json<Vec<Todo>>, AppError> {
 
-    let todos = state.read().map_err(lock_err)?;
-
-    Ok(Json(todos.clone()))
+    let todos = todo::load_all(&pool).await.map_err(db_err)?;
+    Ok(Json(todos))
 }
 
 async fn get_todo(
         _claims: Claims,
         Path(id): Path<u32>,
-        State(state): State<SharedState>,
+        State(pool): State<SharedState>,
     ) -> Result<Json<Todo>, AppError> {
 
-    let todos = state.read().map_err(lock_err)?;
-
-    let todo = todos.iter()
-        .find(|t| t.id == id)
+    let todo = todo::find_by_id(&pool, id).await.map_err(db_err)?
         .ok_or_else(|| not_found_err(id))?;
 
-    Ok(Json(todo.clone()))
+    Ok(Json(todo))
+}
+
+#[derive(serde::Deserialize)]
+struct CreateTodo {
+    task: String,
 }
 
 async fn add_todo(
         _claims: Claims,
-        State(state): State<SharedState>,
-        Json(input): Json<Todo>,
+        State(pool): State<SharedState>,
+        Json(input): Json<CreateTodo>,
     ) -> Result<Json<Todo>, AppError> {
 
-    // 1. Update RAM (State)
-    {
-        let mut todos = state.write().expect("Error: Could not write to file!");
-        todos.push(input.clone());
-    } // Lock is dropped here
-
-    // 2. Update Disk (CSV)
-    save_or_error(&input)?;
-
-    Ok(Json(input))
+    let todo = todo::create(&pool, &input.task).await.map_err(db_err)?;
+    Ok(Json(todo))
 }
 
 async fn complete_todo(
         _claims: Claims,
-        State(state): State<SharedState>,
+        State(pool): State<SharedState>,
         Path(id): Path<u32>,
     ) -> Result<Json<Todo>, AppError> {
 
-    let mut todos = state.write().map_err(lock_err)?;
-
-    let todo = todos.iter_mut()
-        .find(|t| t.id == id)
+    let todo = todo::complete(&pool, id).await.map_err(db_err)?
         .ok_or_else(|| not_found_err(id))?;
 
-    todo.completed = true;
-    let updated_todo = todo.clone();
-
-    // Must rewrite entire file because a record changed
-    if let Err(e) = todo::save_all_to_csv(&todos) {
-        eprintln!("Error: Failed to rewrite CSV: {}", e);
-        return Err(ServerError::Internal.into());
-    }
-
-    Ok(Json(updated_todo))
+    Ok(Json(todo))
 }
 
-fn save_or_error(todo: &Todo) -> Result<(), ServerError> {
-    if let Err(e) = todo::save_to_csv(todo) {
-        eprintln!("Error: Failed to save to CSV: {}", e);
-        return Err(ServerError::Internal.into());
-    }
-    Ok(())
+fn db_err<E: std::fmt::Display>(err: E) -> ServerError {
+    eprintln!("Database Error: {}", err);
+    ServerError::Internal
 }
 
 fn not_found_err(id: u32) -> ServerError {
     eprintln!("Error: Could not find todo with id: {}", id);
-    return ServerError::NotFound;
-}
-
-fn lock_err<E>(err: E) -> ServerError
-where E: std::fmt::Display {
-    eprintln!("Error: Could not get todos from server: {}", err);
-    ServerError::Internal
+    ServerError::NotFound
 }

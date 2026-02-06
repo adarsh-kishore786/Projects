@@ -2,79 +2,122 @@ use axum::{
     Json, Router, extract::{State, Path}, routing::{get, post}
 };
 use sqlx::SqlitePool;
+use chrono::{DateTime, Utc};
+use serde::Deserialize;
 
 use crate::logic::auth::{self, Claims};
 use crate::logic::todo;
 use crate::logic::error::{AppError, ServerError};
 
-use todo::Todo;
-
 pub type SharedState = SqlitePool;
 
 pub fn get_router(state: SharedState) -> Router {
     Router::new()
+        .route("/signup", post(auth::signup))
         .route("/login", post(auth::login))
-        .route("/todos", get(get_todos))
-        .route("/todos", post(add_todo))
-        .route("/todos/:id", get(get_todo))
-        .route("/todos/:id/complete", post(complete_todo))
+        // Projects
+        .route("/projects", get(get_projects))
+        .route("/projects", post(create_project))
+        // Tasks
+        .route("/projects/:project_id/tasks", get(get_tasks))
+        .route("/projects/:project_id/tasks", post(create_task))
+        .route("/tasks/:id/complete", post(complete_task))
+        // Comments
+        .route("/tasks/:id/comments", post(add_comment))
         .with_state(state)
 }
 
-async fn get_todos(
-        _claims: Claims,
-        State(pool): State<SharedState>,
-    ) -> Result<Json<Vec<Todo>>, AppError> {
+// --- Projects ---
 
-    let todos = todo::load_all(&pool).await.map_err(db_err)?;
-    Ok(Json(todos))
+#[derive(Deserialize)]
+struct CreateProject {
+    name: String,
 }
 
-async fn get_todo(
-        _claims: Claims,
-        Path(id): Path<u32>,
-        State(pool): State<SharedState>,
-    ) -> Result<Json<Todo>, AppError> {
-
-    let todo = todo::find_by_id(&pool, id).await.map_err(db_err)?
-        .ok_or_else(|| not_found_err(id))?;
-
-    Ok(Json(todo))
+async fn create_project(
+    claims: Claims,
+    State(pool): State<SharedState>,
+    Json(input): Json<CreateProject>,
+) -> Result<Json<todo::Project>, AppError> {
+    let user_id = claims.sub.parse::<i64>().map_err(|_| ServerError::Internal)?;
+    let project = todo::create_project(&pool, user_id, &input.name).await.map_err(db_err)?;
+    Ok(Json(project))
 }
 
-#[derive(serde::Deserialize)]
-struct CreateTodo {
-    task: String,
+async fn get_projects(
+    claims: Claims,
+    State(pool): State<SharedState>,
+) -> Result<Json<Vec<todo::Project>>, AppError> {
+    let user_id = claims.sub.parse::<i64>().map_err(|_| ServerError::Internal)?;
+    let projects = todo::list_projects(&pool, user_id).await.map_err(db_err)?;
+    Ok(Json(projects))
 }
 
-async fn add_todo(
-        _claims: Claims,
-        State(pool): State<SharedState>,
-        Json(input): Json<CreateTodo>,
-    ) -> Result<Json<Todo>, AppError> {
+// --- Tasks ---
 
-    let todo = todo::create(&pool, &input.task).await.map_err(db_err)?;
-    Ok(Json(todo))
+#[derive(Deserialize)]
+struct CreateTask {
+    title: String,
+    priority: Option<i32>,
+    due_date: Option<DateTime<Utc>>,
 }
 
-async fn complete_todo(
-        _claims: Claims,
-        State(pool): State<SharedState>,
-        Path(id): Path<u32>,
-    ) -> Result<Json<Todo>, AppError> {
-
-    let todo = todo::complete(&pool, id).await.map_err(db_err)?
-        .ok_or_else(|| not_found_err(id))?;
-
-    Ok(Json(todo))
+async fn create_task(
+    _claims: Claims,
+    State(pool): State<SharedState>,
+    Path(project_id): Path<i64>,
+    Json(input): Json<CreateTask>,
+) -> Result<Json<todo::Task>, AppError> {
+    let task = todo::create_task(
+        &pool, 
+        project_id, 
+        &input.title, 
+        input.priority.unwrap_or(4), 
+        input.due_date
+    ).await.map_err(db_err)?;
+    
+    Ok(Json(task))
 }
+
+async fn get_tasks(
+    _claims: Claims,
+    State(pool): State<SharedState>,
+    Path(project_id): Path<i64>,
+) -> Result<Json<Vec<todo::Task>>, AppError> {
+    let tasks = todo::list_tasks(&pool, project_id).await.map_err(db_err)?;
+    Ok(Json(tasks))
+}
+
+async fn complete_task(
+    _claims: Claims,
+    State(pool): State<SharedState>,
+    Path(id): Path<i64>,
+) -> Result<(), AppError> {
+    todo::complete_task(&pool, id).await.map_err(db_err)?;
+    Ok(())
+}
+
+// --- Comments ---
+
+#[derive(Deserialize)]
+struct CreateComment {
+    content: String,
+}
+
+async fn add_comment(
+    claims: Claims,
+    State(pool): State<SharedState>,
+    Path(id): Path<i64>,
+    Json(input): Json<CreateComment>,
+) -> Result<Json<todo::Comment>, AppError> {
+    let user_id = claims.sub.parse::<i64>().map_err(|_| ServerError::Internal)?;
+    let comment = todo::add_comment(&pool, id, user_id, &input.content).await.map_err(db_err)?;
+    Ok(Json(comment))
+}
+
+// --- Helpers ---
 
 fn db_err<E: std::fmt::Display>(err: E) -> ServerError {
     eprintln!("Database Error: {}", err);
     ServerError::Internal
-}
-
-fn not_found_err(id: u32) -> ServerError {
-    eprintln!("Error: Could not find todo with id: {}", id);
-    ServerError::NotFound
 }

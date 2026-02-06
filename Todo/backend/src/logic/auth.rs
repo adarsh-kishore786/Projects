@@ -1,6 +1,6 @@
 use axum::{
     Json,
-    extract::FromRequestParts,
+    extract::{FromRequestParts, State},
     http::request::Parts,
     async_trait
 };
@@ -17,14 +17,17 @@ use jsonwebtoken::{
 };
 
 use serde::{Serialize,Deserialize};
+use bcrypt::{hash, verify, DEFAULT_COST};
+use sqlx::SqlitePool;
 
-use crate::logic::error::AuthError;
+use crate::logic::error::{AuthError, AppError, ServerError};
+use crate::logic::todo;
 
 const JWT_SECRET: &[u8] = b"secret_key_change_me_in_production";
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Claims {
-    pub sub: String,
+    pub sub: String, // This will store the numeric User ID as a string
     pub exp: usize,
 }
 
@@ -36,12 +39,10 @@ where
     type Rejection = AuthError;
 
     async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
-        // Extract the token from the authorization header
         let TypedHeader(Authorization(bearer)) = TypedHeader::<Authorization<Bearer>>::from_request_parts(parts, state)
             .await
             .map_err(|_| AuthError::MissingToken)?;
 
-        // Decode the user data
         let token_data = decode::<Claims>(
             bearer.token(),
             &DecodingKey::from_secret(JWT_SECRET),
@@ -59,16 +60,60 @@ pub struct AuthBody {
     pub token_type: String,
 }
 
-pub async fn login() -> Json<AuthBody> {
-    let claims = Claims {
-        sub: "user_123".to_owned(),
-        exp: 2000000000, // Year 2033 (use actual timestamps in production!)
-    };
+#[derive(Deserialize)]
+pub struct AuthPayload {
+    pub username: String,
+    pub password: String,
+}
 
-    let token = encode(&Header::default(), &claims, &EncodingKey::from_secret(JWT_SECRET)).unwrap();
+pub async fn signup(
+    State(pool): State<SqlitePool>,
+    Json(payload): Json<AuthPayload>,
+) -> Result<Json<AuthBody>, AppError> {
 
-    Json(AuthBody {
+    let password_hash = hash(payload.password, DEFAULT_COST).map_err(|_| ServerError::Internal)?;
+    
+    let user_id = todo::create_user(&pool, &payload.username, &password_hash)
+        .await
+        .map_err(|_| ServerError::Internal)?;
+
+    let token = create_jwt(user_id)?;
+
+    Ok(Json(AuthBody {
         access_token: token,
         token_type: "Bearer".to_string(),
-    })
+    }))
+}
+
+pub async fn login(
+    State(pool): State<SqlitePool>,
+    Json(payload): Json<AuthPayload>,
+) -> Result<Json<AuthBody>, AppError> {
+    let user = todo::find_user_by_username(&pool, &payload.username)
+        .await
+        .map_err(|_| ServerError::Internal)?
+        .ok_or(AuthError::InvalidToken)?;
+
+    let is_valid = verify(payload.password, &user.password_hash).map_err(|_| ServerError::Internal)?;
+
+    if !is_valid {
+        return Err(AuthError::InvalidToken.into());
+    }
+
+    let token = create_jwt(user.id)?;
+
+    Ok(Json(AuthBody {
+        access_token: token,
+        token_type: "Bearer".to_string(),
+    }))
+}
+
+fn create_jwt(user_id: i64) -> Result<String, ServerError> {
+    let claims = Claims {
+        sub: user_id.to_string(),
+        exp: 2000000000, 
+    };
+
+    encode(&Header::default(), &claims, &EncodingKey::from_secret(JWT_SECRET))
+        .map_err(|_| ServerError::Internal)
 }

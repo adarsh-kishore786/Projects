@@ -75,7 +75,10 @@ pub async fn signup(
     
     let user_id = todo::create_user(&pool, &payload.username, &password_hash)
         .await
-        .map_err(|_| ServerError::Internal)?;
+        .map_err(|err| {
+            eprintln!("Error: {}", err);
+            ServerError::Internal
+        })?;
 
     let token = create_jwt(user_id)?;
 

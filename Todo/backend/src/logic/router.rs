@@ -18,6 +18,7 @@ pub fn get_router(state: SharedState) -> Router {
         // Projects
         .route("/projects", get(get_projects))
         .route("/projects", post(create_project))
+        .route("/projects/:project_id", get(get_project))
         // .route("/projects/:project_id", post(edit_project))
         // Tasks
         .route("/projects/:project_id/tasks", get(get_tasks))
@@ -58,6 +59,21 @@ async fn get_projects(
     let user_id = claims.sub.parse::<i64>().map_err(db_err)?;
     let projects = todo::list_projects(&pool, user_id).await.map_err(db_err)?;
     Ok(Json(projects))
+}
+
+async fn get_project(
+    claims: Claims,
+    State(pool): State<SharedState>,
+    Path(project_id): Path<i64>,
+) -> Result<Json<todo::Project>, AppError> {
+    let user_id = claims.sub.parse::<i64>().map_err(db_err)?;
+    let project = todo::get_project(&pool, project_id, user_id).await;
+
+    if let Ok(p) = project {
+        return Ok(Json(p));
+    }
+
+    return Err(ServerError::NotFound.into());
 }
 
 // async fn edit_project(

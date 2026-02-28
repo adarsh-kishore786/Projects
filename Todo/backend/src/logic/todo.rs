@@ -150,6 +150,14 @@ pub async fn project_exists(pool: &SqlitePool, project_id: i64, user_id: i64) ->
     Ok(result.is_some())
 }
 
+pub async fn get_project(pool: &SqlitePool, project_id: i64, user_id: i64) -> Result<Project, sqlx::Error> {
+    sqlx::query_as::<_, Project>("SELECT * FROM projects WHERE id = ? AND user_id = ?")
+        .bind(project_id)
+        .bind(user_id)
+        .fetch_one(pool)
+        .await
+}
+
 // --- Tasks ---
 
 pub async fn create_task(

@@ -18,6 +18,7 @@ pub fn get_router(state: SharedState) -> Router {
         // Projects
         .route("/projects", get(get_projects))
         .route("/projects", post(create_project))
+        // .route("/projects/:project_id", post(edit_project))
         // Tasks
         .route("/projects/:project_id/tasks", get(get_tasks))
         .route("/projects/:project_id/tasks", post(create_task))
@@ -32,6 +33,7 @@ pub fn get_router(state: SharedState) -> Router {
 #[derive(Deserialize)]
 struct CreateProject {
     name: String,
+    color: Option<String>
 }
 
 async fn create_project(
@@ -39,8 +41,13 @@ async fn create_project(
     State(pool): State<SharedState>,
     Json(input): Json<CreateProject>,
 ) -> Result<Json<todo::Project>, AppError> {
-    let user_id = claims.sub.parse::<i64>().map_err(|_| ServerError::Internal)?;
-    let project = todo::create_project(&pool, user_id, &input.name).await.map_err(db_err)?;
+    let user_id = claims.sub.parse::<i64>().map_err(db_err)?;
+    let project = todo::create_project(
+        &pool, 
+        user_id, 
+        &input.name, 
+        input.color.as_deref()
+    ).await.map_err(db_err)?;
     Ok(Json(project))
 }
 
@@ -48,10 +55,19 @@ async fn get_projects(
     claims: Claims,
     State(pool): State<SharedState>,
 ) -> Result<Json<Vec<todo::Project>>, AppError> {
-    let user_id = claims.sub.parse::<i64>().map_err(|_| ServerError::Internal)?;
+    let user_id = claims.sub.parse::<i64>().map_err(db_err)?;
     let projects = todo::list_projects(&pool, user_id).await.map_err(db_err)?;
     Ok(Json(projects))
 }
+
+// async fn edit_project(
+//     claims: Claims,
+//     State(pool): State<SharedState>,
+//     Json(input): Json<CreateProject>
+// ) -> Result<Json<todo::Project>, AppError> {
+//
+//     let user_id = claims.sub.parse::<i64>.map_err()
+// }
 
 // --- Tasks ---
 

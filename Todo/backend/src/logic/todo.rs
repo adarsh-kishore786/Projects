@@ -114,15 +114,23 @@ pub async fn find_user_by_username(pool: &SqlitePool, username: &str) -> Result<
 
 // --- Projects ---
 
-pub async fn create_project(pool: &SqlitePool, user_id: i64, name: &str) -> Result<Project, sqlx::Error> {
-    let id = sqlx::query("INSERT INTO projects (user_id, name) VALUES (?, ?)")
+pub async fn create_project(pool: &SqlitePool, user_id: i64, name: &str, color: Option<&str>) -> Result<Project, sqlx::Error> {
+    let color_to_save = color.unwrap_or("Blue");
+    
+    let id = sqlx::query("INSERT INTO projects (user_id, name, color) VALUES (?, ?, ?)")
         .bind(user_id)
         .bind(name)
+        .bind(color_to_save)
         .execute(pool)
         .await?
         .last_insert_rowid();
 
-    Ok(Project { id, user_id, name: name.to_string(), color: None })
+    Ok(Project { 
+        id, 
+        user_id, 
+        name: name.to_string(), 
+        color: Some(color_to_save.to_string()) 
+    })
 }
 
 pub async fn list_projects(pool: &SqlitePool, user_id: i64) -> Result<Vec<Project>, sqlx::Error> {

@@ -19,17 +19,20 @@ impl IntoResponse for AuthError {
 }
 
 pub enum ServerError {
-    NotFound,
+    NotFound(&'static str),
     Internal,
 }
 
 impl IntoResponse for ServerError {
     fn into_response(self) -> Response {
-        let (status, msg) = match self {
-            ServerError::NotFound => (StatusCode::NOT_FOUND, "Not found"),
-            ServerError::Internal => (StatusCode::INTERNAL_SERVER_ERROR, "Internal server error"),
-        };
-        (status, msg).into_response()
+        match self {
+            ServerError::NotFound(resource) => {
+                (StatusCode::NOT_FOUND, format!("{} not found", resource)).into_response()
+            }
+            ServerError::Internal => {
+                (StatusCode::INTERNAL_SERVER_ERROR, "Internal server error").into_response()
+            }
+        }
     }
 }
 

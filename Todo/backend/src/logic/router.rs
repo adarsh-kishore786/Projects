@@ -79,7 +79,7 @@ async fn get_project(
         return Ok(Json(p));
     }
 
-    return Err(ServerError::NotFound.into());
+    return Err(ServerError::NotFound("Project").into());
 }
 
 async fn edit_project(
@@ -88,18 +88,21 @@ async fn edit_project(
     Path(project_id): Path<i64>,
     Json(input): Json<EditProject>
 ) -> Result<Json<todo::Project>, AppError> {
-
     let user_id = claims.sub.parse::<i64>().map_err(db_err)?;
-    if !todo::project_exists(&pool, project_id, user_id).await.map_err(db_err)? {
-        return Err(ServerError::NotFound.into());
-    }
+    
+    let result = todo::edit_project(
+        &pool, 
+        project_id, 
+        user_id, 
+        input.name.as_deref(), 
+        input.color.as_deref()
+    ).await.map_err(|e| {
+        if let sqlx::Error::RowNotFound = e {
+            return ServerError::NotFound("Project");
+        }
+        db_err(e)
+    })?;
 
-    let project = todo::get_project(&pool, project_id, user_id).await.map_err(db_err)?;
-
-    let name = input.name.unwrap_or(project.name);
-    let color = input.color.unwrap_or(project.color.unwrap_or(todo::DEFAULT_COLOR.to_string()));
-
-    let result = todo::edit_project(&pool, project_id, user_id, &name, &color).await.map_err(db_err)?;
     Ok(Json(result))
 }
 
@@ -121,7 +124,7 @@ async fn create_task(
     let user_id = claims.sub.parse::<i64>().map_err(|_| ServerError::Internal)?;
     
     if !todo::project_exists(&pool, project_id, user_id).await.map_err(db_err)? {
-        return Err(ServerError::NotFound.into());
+        return Err(ServerError::NotFound("Project").into());
     }
 
     let task = todo::create_task(
@@ -143,7 +146,7 @@ async fn get_tasks(
     let user_id = claims.sub.parse::<i64>().map_err(|_| ServerError::Internal)?;
     
     if !todo::project_exists(&pool, project_id, user_id).await.map_err(db_err)? {
-        return Err(ServerError::NotFound.into());
+        return Err(ServerError::NotFound("Project").into());
     }
 
     let tasks = todo::list_tasks(&pool, project_id).await.map_err(db_err)?;
@@ -158,7 +161,7 @@ async fn complete_task(
     let success = todo::complete_task(&pool, id).await.map_err(db_err)?;
     
     if !success {
-        return Err(ServerError::NotFound.into());
+        return Err(ServerError::NotFound("Task").into());
     }
     
     Ok(())
@@ -184,7 +187,7 @@ async fn add_comment(
         // If it's a foreign key error, return 404
         if let Some(db_err) = e.as_database_error() {
             if db_err.is_foreign_key_violation() {
-                return ServerError::NotFound;
+                return ServerError::NotFound("Task");
             }
         }
         db_err(e)

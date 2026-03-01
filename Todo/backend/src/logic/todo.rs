@@ -135,23 +135,26 @@ pub async fn create_project(pool: &SqlitePool, user_id: i64, name: &str, color: 
     })
 }
 
-pub async fn edit_project(pool: &SqlitePool, project_id: i64, user_id: i64, name: &str, color: &str) 
--> Result<Project, sqlx::Error> {
-
-    sqlx::query("UPDATE projects SET name = ?, color = ? WHERE id = ? AND user_id = ?")
-        .bind(name)
-        .bind(color)
-        .bind(project_id)
-        .bind(user_id)
-        .execute(pool)
-        .await?;
-
-    Ok(Project {
-        id: project_id,
-        user_id,
-        name: name.to_string(),
-        color: Some(color.to_string())
-    })
+pub async fn edit_project(
+    pool: &SqlitePool, 
+    project_id: i64, 
+    user_id: i64, 
+    name: Option<&str>, 
+    color: Option<&str>
+) -> Result<Project, sqlx::Error> {
+    sqlx::query_as::<_, Project>(
+        "UPDATE projects 
+         SET name = COALESCE(?, name), 
+             color = COALESCE(?, color) 
+         WHERE id = ? AND user_id = ? 
+         RETURNING *"
+    )
+    .bind(name)
+    .bind(color)
+    .bind(project_id)
+    .bind(user_id)
+    .fetch_one(pool)
+    .await
 }
 
 pub async fn list_projects(pool: &SqlitePool, user_id: i64) -> Result<Vec<Project>, sqlx::Error> {

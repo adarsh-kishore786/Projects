@@ -1,4 +1,4 @@
-mod logic;
+pub mod logic;
 
 use logic::todo;
 use logic::router;

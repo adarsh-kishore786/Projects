@@ -1,5 +1,4 @@
 use axum::{
-    Json,
     extract::{FromRequestParts, State},
     http::request::Parts,
     async_trait
@@ -20,7 +19,7 @@ use serde::{Serialize,Deserialize};
 use bcrypt::{hash, verify, DEFAULT_COST};
 use sqlx::SqlitePool;
 
-use crate::logic::error::{AuthError, AppError, ServerError};
+use crate::logic::error::{AuthError, AppError, ServerError, Json};
 use crate::logic::todo;
 
 const JWT_SECRET: &[u8] = b"secret_key_change_me_in_production";

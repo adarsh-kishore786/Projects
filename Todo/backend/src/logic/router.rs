@@ -1,5 +1,5 @@
 use axum::{
-    Json, Router, extract::State, routing::{get, post}
+    Router, extract::State, routing::{get, post, delete, patch}
 };
 use sqlx::SqlitePool;
 use chrono::{DateTime, Utc};
@@ -7,7 +7,7 @@ use serde::Deserialize;
 
 use crate::logic::auth::{self, Claims};
 use crate::logic::todo;
-use crate::logic::error::{AppError, ServerError, Path};
+use crate::logic::error::{AppError, ServerError, Path, Json};
 
 pub type SharedState = SqlitePool;
 
@@ -19,13 +19,20 @@ pub fn get_router(state: SharedState) -> Router {
         .route("/projects", get(get_projects))
         .route("/projects", post(create_project))
         .route("/projects/:project_id", get(get_project))
-        .route("/projects/:project_id", post(edit_project))
+        .route("/projects/:project_id", patch(edit_project))
+        .route("/projects/:project_id", delete(delete_project))
         // Tasks
         .route("/projects/:project_id/tasks", get(get_tasks))
         .route("/projects/:project_id/tasks", post(create_task))
+        .route("/tasks/:id", get(get_task))
+        .route("/tasks/:id", patch(edit_task))
+        .route("/tasks/:id", delete(delete_task))
         .route("/tasks/:id/complete", post(complete_task))
         // Comments
+        .route("/tasks/:id/comments", get(get_comments))
         .route("/tasks/:id/comments", post(add_comment))
+        .route("/comments/:id", patch(edit_comment))
+        .route("/comments/:id", delete(delete_comment))
         .with_state(state)
 }
 
@@ -106,12 +113,35 @@ async fn edit_project(
     Ok(Json(result))
 }
 
+async fn delete_project(
+    claims: Claims,
+    State(pool): State<SharedState>,
+    Path(project_id): Path<i64>,
+) -> Result<(), AppError> {
+    let user_id = claims.sub.parse::<i64>().map_err(db_err)?;
+    let success = todo::delete_project(&pool, project_id, user_id).await.map_err(db_err)?;
+    
+    if !success {
+        return Err(ServerError::NotFound("Project").into());
+    }
+    
+    Ok(())
+}
+
 // --- Tasks ---
 
 #[derive(Deserialize)]
 struct CreateTask {
     title: String,
     priority: Option<i32>,
+    due_date: Option<DateTime<Utc>>,
+}
+
+#[derive(Deserialize)]
+struct EditTask {
+    title: Option<String>,
+    priority: Option<i32>,
+    completed: Option<bool>,
     due_date: Option<DateTime<Utc>>,
 }
 
@@ -136,6 +166,58 @@ async fn create_task(
     ).await.map_err(db_err)?;
     
     Ok(Json(task))
+}
+
+async fn get_task(
+    _claims: Claims,
+    State(pool): State<SharedState>,
+    Path(id): Path<i64>,
+) -> Result<Json<todo::Task>, AppError> {
+    let task = todo::get_task(&pool, id).await.map_err(|e| {
+        if let sqlx::Error::RowNotFound = e {
+            return ServerError::NotFound("Task");
+        }
+        db_err(e)
+    })?;
+    
+    Ok(Json(task))
+}
+
+async fn edit_task(
+    _claims: Claims,
+    State(pool): State<SharedState>,
+    Path(id): Path<i64>,
+    Json(input): Json<EditTask>,
+) -> Result<Json<todo::Task>, AppError> {
+    let task = todo::edit_task(
+        &pool, 
+        id, 
+        input.title.as_deref(), 
+        input.priority, 
+        input.completed, 
+        input.due_date
+    ).await.map_err(|e| {
+        if let sqlx::Error::RowNotFound = e {
+            return ServerError::NotFound("Task");
+        }
+        db_err(e)
+    })?;
+    
+    Ok(Json(task))
+}
+
+async fn delete_task(
+    _claims: Claims,
+    State(pool): State<SharedState>,
+    Path(id): Path<i64>,
+) -> Result<(), AppError> {
+    let success = todo::delete_task(&pool, id).await.map_err(db_err)?;
+    
+    if !success {
+        return Err(ServerError::NotFound("Task").into());
+    }
+    
+    Ok(())
 }
 
 async fn get_tasks(
@@ -174,6 +256,15 @@ struct CreateComment {
     content: String,
 }
 
+async fn get_comments(
+    _claims: Claims,
+    State(pool): State<SharedState>,
+    Path(id): Path<i64>,
+) -> Result<Json<Vec<todo::Comment>>, AppError> {
+    let comments = todo::list_comments(&pool, id).await.map_err(db_err)?;
+    Ok(Json(comments))
+}
+
 async fn add_comment(
     claims: Claims,
     State(pool): State<SharedState>,
@@ -194,6 +285,38 @@ async fn add_comment(
     })?;
     
     Ok(Json(comment))
+}
+
+async fn edit_comment(
+    claims: Claims,
+    State(pool): State<SharedState>,
+    Path(id): Path<i64>,
+    Json(input): Json<CreateComment>,
+) -> Result<Json<todo::Comment>, AppError> {
+    let user_id = claims.sub.parse::<i64>().map_err(db_err)?;
+    let comment = todo::edit_comment(&pool, id, user_id, &input.content).await.map_err(|e| {
+        if let sqlx::Error::RowNotFound = e {
+            return ServerError::NotFound("Comment");
+        }
+        db_err(e)
+    })?;
+    
+    Ok(Json(comment))
+}
+
+async fn delete_comment(
+    claims: Claims,
+    State(pool): State<SharedState>,
+    Path(id): Path<i64>,
+) -> Result<(), AppError> {
+    let user_id = claims.sub.parse::<i64>().map_err(db_err)?;
+    let success = todo::delete_comment(&pool, id, user_id).await.map_err(db_err)?;
+    
+    if !success {
+        return Err(ServerError::NotFound("Comment").into());
+    }
+    
+    Ok(())
 }
 
 // --- Helpers ---

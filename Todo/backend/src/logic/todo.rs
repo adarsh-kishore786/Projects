@@ -182,6 +182,16 @@ pub async fn get_project(pool: &SqlitePool, project_id: i64, user_id: i64) -> Re
         .await
 }
 
+pub async fn delete_project(pool: &SqlitePool, project_id: i64, user_id: i64) -> Result<bool, sqlx::Error> {
+    let result = sqlx::query("DELETE FROM projects WHERE id = ? AND user_id = ?")
+        .bind(project_id)
+        .bind(user_id)
+        .execute(pool)
+        .await?;
+    
+    Ok(result.rows_affected() > 0)
+}
+
 // --- Tasks ---
 
 pub async fn create_task(
@@ -214,6 +224,13 @@ pub async fn create_task(
     })
 }
 
+pub async fn get_task(pool: &SqlitePool, task_id: i64) -> Result<Task, sqlx::Error> {
+    sqlx::query_as::<_, Task>("SELECT * FROM tasks WHERE id = ?")
+        .bind(task_id)
+        .fetch_one(pool)
+        .await
+}
+
 pub async fn list_tasks(pool: &SqlitePool, project_id: i64) -> Result<Vec<Task>, sqlx::Error> {
     sqlx::query_as::<_, Task>("SELECT * FROM tasks WHERE project_id = ?")
         .bind(project_id)
@@ -221,8 +238,43 @@ pub async fn list_tasks(pool: &SqlitePool, project_id: i64) -> Result<Vec<Task>,
         .await
 }
 
+pub async fn edit_task(
+    pool: &SqlitePool, 
+    task_id: i64, 
+    title: Option<&str>, 
+    priority: Option<i32>,
+    completed: Option<bool>,
+    due_date: Option<DateTime<Utc>>
+) -> Result<Task, sqlx::Error> {
+    sqlx::query_as::<_, Task>(
+        "UPDATE tasks 
+         SET title = COALESCE(?, title), 
+             priority = COALESCE(?, priority),
+             completed = COALESCE(?, completed),
+             due_date = COALESCE(?, due_date)
+         WHERE id = ? 
+         RETURNING *"
+    )
+    .bind(title)
+    .bind(priority)
+    .bind(completed)
+    .bind(due_date)
+    .bind(task_id)
+    .fetch_one(pool)
+    .await
+}
+
 pub async fn complete_task(pool: &SqlitePool, id: i64) -> Result<bool, sqlx::Error> {
     let result = sqlx::query("UPDATE tasks SET completed = 1 WHERE id = ?")
+        .bind(id)
+        .execute(pool)
+        .await?;
+    
+    Ok(result.rows_affected() > 0)
+}
+
+pub async fn delete_task(pool: &SqlitePool, id: i64) -> Result<bool, sqlx::Error> {
+    let result = sqlx::query("DELETE FROM tasks WHERE id = ?")
         .bind(id)
         .execute(pool)
         .await?;
@@ -249,4 +301,32 @@ pub async fn add_comment(pool: &SqlitePool, task_id: i64, user_id: i64, content:
         content: content.to_string(),
         created_at: res.get(1),
     })
+}
+
+pub async fn list_comments(pool: &SqlitePool, task_id: i64) -> Result<Vec<Comment>, sqlx::Error> {
+    sqlx::query_as::<_, Comment>("SELECT * FROM comments WHERE task_id = ? ORDER BY created_at ASC")
+        .bind(task_id)
+        .fetch_all(pool)
+        .await
+}
+
+pub async fn edit_comment(pool: &SqlitePool, comment_id: i64, user_id: i64, content: &str) -> Result<Comment, sqlx::Error> {
+    sqlx::query_as::<_, Comment>(
+        "UPDATE comments SET content = ? WHERE id = ? AND user_id = ? RETURNING *"
+    )
+    .bind(content)
+    .bind(comment_id)
+    .bind(user_id)
+    .fetch_one(pool)
+    .await
+}
+
+pub async fn delete_comment(pool: &SqlitePool, comment_id: i64, user_id: i64) -> Result<bool, sqlx::Error> {
+    let result = sqlx::query("DELETE FROM comments WHERE id = ? AND user_id = ?")
+        .bind(comment_id)
+        .bind(user_id)
+        .execute(pool)
+        .await?;
+    
+    Ok(result.rows_affected() > 0)
 }

@@ -1,5 +1,5 @@
 use axum::{
-    Json, Router, extract::{State, Path}, routing::{get, post}
+    Json, Router, extract::State, routing::{get, post}
 };
 use sqlx::SqlitePool;
 use chrono::{DateTime, Utc};
@@ -7,7 +7,7 @@ use serde::Deserialize;
 
 use crate::logic::auth::{self, Claims};
 use crate::logic::todo;
-use crate::logic::error::{AppError, ServerError};
+use crate::logic::error::{AppError, ServerError, Path};
 
 pub type SharedState = SqlitePool;
 

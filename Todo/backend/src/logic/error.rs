@@ -20,6 +20,7 @@ impl IntoResponse for AuthError {
 
 pub enum ServerError {
     NotFound(&'static str),
+    ParameterError(&'static str),
     Internal,
 }
 
@@ -29,9 +30,36 @@ impl IntoResponse for ServerError {
             ServerError::NotFound(resource) => {
                 (StatusCode::NOT_FOUND, format!("{} not found", resource)).into_response()
             }
+            ServerError::ParameterError(msg) => {
+                (StatusCode::BAD_REQUEST, msg.to_string()).into_response()
+            }
             ServerError::Internal => {
                 (StatusCode::INTERNAL_SERVER_ERROR, "Internal server error").into_response()
             }
+        }
+    }
+}
+
+// Custom Extractors to prevent information leakage
+
+use axum::extract::FromRequestParts;
+use axum::http::request::Parts;
+use async_trait::async_trait;
+
+pub struct Path<T>(pub T);
+
+#[async_trait]
+impl<S, T> FromRequestParts<S> for Path<T>
+where
+    T: serde::de::DeserializeOwned + Send,
+    S: Send + Sync,
+{
+    type Rejection = AppError;
+
+    async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
+        match axum::extract::Path::<T>::from_request_parts(parts, state).await {
+            Ok(value) => Ok(Self(value.0)),
+            Err(_) => Err(ServerError::ParameterError("Invalid path parameter").into()),
         }
     }
 }

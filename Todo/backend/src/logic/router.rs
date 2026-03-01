@@ -19,7 +19,7 @@ pub fn get_router(state: SharedState) -> Router {
         .route("/projects", get(get_projects))
         .route("/projects", post(create_project))
         .route("/projects/:project_id", get(get_project))
-        // .route("/projects/:project_id", post(edit_project))
+        .route("/projects/:project_id", post(edit_project))
         // Tasks
         .route("/projects/:project_id/tasks", get(get_tasks))
         .route("/projects/:project_id/tasks", post(create_task))
@@ -34,6 +34,12 @@ pub fn get_router(state: SharedState) -> Router {
 #[derive(Deserialize)]
 struct CreateProject {
     name: String,
+    color: Option<String>
+}
+
+#[derive(Deserialize)]
+struct EditProject {
+    name: Option<String>,
     color: Option<String>
 }
 
@@ -76,14 +82,26 @@ async fn get_project(
     return Err(ServerError::NotFound.into());
 }
 
-// async fn edit_project(
-//     claims: Claims,
-//     State(pool): State<SharedState>,
-//     Json(input): Json<CreateProject>
-// ) -> Result<Json<todo::Project>, AppError> {
-//
-//     let user_id = claims.sub.parse::<i64>.map_err()
-// }
+async fn edit_project(
+    claims: Claims,
+    State(pool): State<SharedState>,
+    Path(project_id): Path<i64>,
+    Json(input): Json<EditProject>
+) -> Result<Json<todo::Project>, AppError> {
+
+    let user_id = claims.sub.parse::<i64>().map_err(db_err)?;
+    if !todo::project_exists(&pool, project_id, user_id).await.map_err(db_err)? {
+        return Err(ServerError::NotFound.into());
+    }
+
+    let project = todo::get_project(&pool, project_id, user_id).await.map_err(db_err)?;
+
+    let name = input.name.unwrap_or(project.name);
+    let color = input.color.unwrap_or(project.color.unwrap_or(todo::DEFAULT_COLOR.to_string()));
+
+    let result = todo::edit_project(&pool, project_id, user_id, &name, &color).await.map_err(db_err)?;
+    Ok(Json(result))
+}
 
 // --- Tasks ---
 

@@ -2,6 +2,8 @@ use serde::{Deserialize, Serialize};
 use sqlx::{sqlite::SqlitePool, FromRow, Row};
 use chrono::{DateTime, Utc};
 
+pub const DEFAULT_COLOR: &str = "Blue";
+
 #[derive(Serialize, Deserialize, Clone, Debug, FromRow)]
 pub struct UserRecord {
     pub id: i64,
@@ -115,7 +117,7 @@ pub async fn find_user_by_username(pool: &SqlitePool, username: &str) -> Result<
 // --- Projects ---
 
 pub async fn create_project(pool: &SqlitePool, user_id: i64, name: &str, color: Option<&str>) -> Result<Project, sqlx::Error> {
-    let color_to_save = color.unwrap_or("Blue");
+    let color_to_save = color.unwrap_or(DEFAULT_COLOR);
     
     let id = sqlx::query("INSERT INTO projects (user_id, name, color) VALUES (?, ?, ?)")
         .bind(user_id)
@@ -130,6 +132,25 @@ pub async fn create_project(pool: &SqlitePool, user_id: i64, name: &str, color: 
         user_id, 
         name: name.to_string(), 
         color: Some(color_to_save.to_string()) 
+    })
+}
+
+pub async fn edit_project(pool: &SqlitePool, project_id: i64, user_id: i64, name: &str, color: &str) 
+-> Result<Project, sqlx::Error> {
+
+    sqlx::query("UPDATE projects SET name = ?, color = ? WHERE id = ? AND user_id = ?")
+        .bind(name)
+        .bind(color)
+        .bind(project_id)
+        .bind(user_id)
+        .execute(pool)
+        .await?;
+
+    Ok(Project {
+        id: project_id,
+        user_id,
+        name: name.to_string(),
+        color: Some(color.to_string())
     })
 }
 
